@@ -9,7 +9,7 @@ delta = 0.0000001;
 
 costs = [];
 
-for t=1:1000
+for t=1:2000
     
     old_weights = owh_params.cur_weights;
     
