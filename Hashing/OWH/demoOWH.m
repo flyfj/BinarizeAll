@@ -48,14 +48,14 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % prepare parameters
 
-bit_num = 64;
+bit_num = 32;
 
 OWHParams.nbits = bit_num;
 OWHParams.prev_prev_weights = ones(1, OWHParams.nbits) / OWHParams.nbits;
 OWHParams.prev_weights = ones(1, OWHParams.nbits); % t, current weights
 OWHParams.cur_weights = OWHParams.prev_weights; % t+1, latest weights
-OWHParams.lambda = 0.1;
-OWHParams.eta = 0.05;
+OWHParams.lambda = 0.2;
+OWHParams.eta = 0.01;
 OWHParams.dist_margin = 0;
 
 old_params = OWHParams;
