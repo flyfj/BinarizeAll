@@ -7,10 +7,10 @@ showCostCurve = 0;
 code_diff_pos = (triplet.query_code - triplet.pos_code).^2;
 code_diff_neg = (triplet.query_code - triplet.neg_code).^2;
 
-hinge_loss = max( double(code_diff_pos - code_diff_neg) * owh_params.cur_weights' + owh_params.dist_margin, 0);
-if hinge_loss == 0
-    return;
-end
+% hinge_loss = max( double(code_diff_pos - code_diff_neg) * owh_params.cur_weights' + owh_params.dist_margin, 0);
+% if hinge_loss == 0
+%     return;
+% end
 
 % do iteration until converge
 delta = 0.0000001;
@@ -24,7 +24,7 @@ owh_params.prev_weights = owh_params.cur_weights;
 
 owh_params.cur_weights = ones(1, owh_params.nbits);
 
-for t=1:10000
+for t=1:1000
     
     old_weights = owh_params.cur_weights;
     
@@ -68,7 +68,8 @@ function cost = ComputeCost(owh_params, triplet)
     code_diff_pos = (triplet.query_code - triplet.pos_code).^2;
     code_diff_neg = (triplet.query_code - triplet.neg_code).^2;
 
-    hinge_loss = max( double(code_diff_pos - code_diff_neg) * owh_params.cur_weights' + owh_params.dist_margin, 0);
-    cost = norm(owh_params.cur_weights - owh_params.prev_weights, 2).^2 / 2 + owh_params.lambda * hinge_loss;
+    loss = double(code_diff_pos - code_diff_neg) * owh_params.cur_weights' + owh_params.dist_margin;
+    %hinge_loss = max( double(code_diff_pos - code_diff_neg) * owh_params.cur_weights' + owh_params.dist_margin, 0);
+    cost = norm(owh_params.cur_weights - owh_params.prev_weights, 2).^2 / 2 + owh_params.lambda * loss;
 
 end
