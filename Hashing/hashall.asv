@@ -1,0 +1,37 @@
+%% compute all types of hash code for raw features and output to files
+% for use in c++ program
+
+addpath(genpath('SH'));
+addpath(genpath('ITQ'));
+addpath(genpath('OWH'));
+
+% load feature data from file
+feat_file = 'F:\Datasets\Recognition\CIFAR-10\cifar-10-binary\train_1_data.txt';
+
+[feats labels] = loadfeatfile(feat_file);
+
+% params
+nbits = 32;
+
+% compute sh
+SHparams.nbits = nbits;
+SHparams = trainSH(feats, SHparams);
+[sh_codes, U] = compressSH(feats, SHparams);
+% convert sh code to unified code rep: array of int 0/1
+% concatenate all char
+sh_code_str = [];
+for r=1:size(sh_codes,1)
+    cur_row = [];
+    for c=1:size(sh_codes,2)
+        cur_code = dec2bin(sh_codes(r,c), 8);
+        cur_row = [cur_row cur_code];
+    end
+    sh_code_str = [code_str; cur_row];
+end
+
+% hash code data file format:
+% #samp #feat_dim #
+
+
+
+% learn weights
