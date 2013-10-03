@@ -12,7 +12,7 @@ Ntraining = 3000; % number training samples
 Ntest = 3000; % number test samples
 averageNumberNeighbors = 50; % number of groundtruth neighbors on training set (average)
 aspectratio = 0.5; % aspect ratio between the two axis
-loopbits = [2 4 8 16 32]; % try different number of bits for coding
+loopbits = [32]; % try different number of bits for coding
 
 % uniform distribution
 Xtraining = rand([Ntraining,2]); 

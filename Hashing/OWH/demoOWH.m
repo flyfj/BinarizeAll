@@ -10,7 +10,10 @@
 % all data vectors are row based
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 1) Create toy data:
+% 1) prepare training data
+
+%%
+% Create toy data:
 % some parameters
 Ntraining = 300; % number training samples
 Ntest = 300; % number test samples
