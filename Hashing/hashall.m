@@ -6,7 +6,7 @@ addpath(genpath('ITQ'));
 addpath(genpath('OWH'));
 
 % load feature data from file
-feat_file = 'F:\Datasets\Recognition\CIFAR-10\cifar-10-binary\train_1_data.txt';
+feat_file = 'F:\Datasets\Recognition\CIFAR-10\cifar-10-binary\test_data.txt';
 
 [feats labels] = loadfeatfile(feat_file);
 
@@ -34,7 +34,7 @@ sh_code_num = int8(sh_code_str-'0');
 % #samp #feat_dim #cls_num
 % label code_Str
 sh_data = double([labels sh_code_num]);
-save('cifar10_train1.code', 'sh_data', '-ascii');
+save('test.code', 'sh_data', '-ascii');
 
 
 
