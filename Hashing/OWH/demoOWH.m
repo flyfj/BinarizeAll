@@ -58,7 +58,7 @@ OWHParams.prev_prev_weights = ones(1, OWHParams.nbits) / OWHParams.nbits;
 OWHParams.prev_weights = ones(1, OWHParams.nbits); % t, current weights
 OWHParams.cur_weights = OWHParams.prev_weights; % t+1, latest weights
 OWHParams.lambda = 0.2;
-OWHParams.eta = 0.01;
+OWHParams.eta = 0.001;
 OWHParams.dist_margin = 0;
 
 old_params = OWHParams;
@@ -95,28 +95,28 @@ triplets = triplets(1:cnt-1, :);
 
 before_constraints = CountGoodConstraints(OWHParams, triplets);
 
-%OWHParams = weightLearnerAll(OWHParams, triplets);
+OWHParams = weightLearnerAll(OWHParams, triplets);
 
-for i=1:cnt-1
-    
-    % randomly pick a triplet (training sample, positive sample, negative sample)
-    train_id = max(1, int32( rand(1) * size(train_codes, 1) ));
-    pos_id = max(1, int32( rand(1) * size(train_pairs{train_id, 1}, 2) ));
-    pos_id = int32( train_pairs{train_id, 1}(1, pos_id) );
-    neg_id = max(1, int32( rand(1) * size(train_pairs{train_id, 2}, 2) ));
-    neg_id = int32( train_pairs{train_id, 2}(1, neg_id) );
-    
-    triplet.query_code = train_codes(train_id, :);
-    triplet.pos_code = train_codes(pos_id, :);
-    triplet.neg_code = train_codes(neg_id, :);
-    
-    % update weight
-    OWHParams = weightLearner(OWHParams, triplets{i,1});
-    
-    %disp(OWHParams.cur_weights);
-    disp(['Finish ' num2str(i) 'th update.']);
-    
-end
+% for i=1:cnt-1
+%     
+%     % randomly pick a triplet (training sample, positive sample, negative sample)
+%     train_id = max(1, int32( rand(1) * size(train_codes, 1) ));
+%     pos_id = max(1, int32( rand(1) * size(train_pairs{train_id, 1}, 2) ));
+%     pos_id = int32( train_pairs{train_id, 1}(1, pos_id) );
+%     neg_id = max(1, int32( rand(1) * size(train_pairs{train_id, 2}, 2) ));
+%     neg_id = int32( train_pairs{train_id, 2}(1, neg_id) );
+%     
+%     triplet.query_code = train_codes(train_id, :);
+%     triplet.pos_code = train_codes(pos_id, :);
+%     triplet.neg_code = train_codes(neg_id, :);
+%     
+%     % update weight
+%     OWHParams = weightLearner(OWHParams, triplets{i,1});
+%     
+%     %disp(OWHParams.cur_weights);
+%     disp(['Finish ' num2str(i) 'th update.']);
+%     
+% end
 
 disp(OWHParams.cur_weights);
 
