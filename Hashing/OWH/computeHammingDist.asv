@@ -1,0 +1,7 @@
+function [ dist, dist_vec ] = computeHammingDist( code1, code2, weights )
+%COMPUTEHAMMINGDIST Summary of this function goes here
+%   Detailed explanation goes here
+
+
+end
+
