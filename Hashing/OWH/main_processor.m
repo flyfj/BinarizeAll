@@ -36,6 +36,20 @@ else if use_data == 2
     end
 end
 
+% group samples from same class together
+dataandlabel = [trainlabel traindata];
+[sorted_data] = sortrows(dataandlabel, 1);
+trainlabel = sorted_data(:, 1);
+traindata = sorted_data(:, 2:end);
+
+unique_labels = length( unique(trainlabel) );
+
+% separate into groups with same labels
+train_groups = cell(length(unique_labels), 1);
+for i=1:length(unique_labels)
+    train_groups{i,1} = find(trainlabel == i);
+end
+
 
 %% compute base hash code
 
