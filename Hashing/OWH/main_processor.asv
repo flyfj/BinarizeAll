@@ -18,7 +18,7 @@ datasets = cell(4,2);
 datasets{1,1} = 'dummy'; datasets{1,2} = '';
 datasets{2,1} = 'CIFAR10';  datasets{2,2} = 'F:\Datasets\Recognition\CIFAR-10\cifar-10-binary\';
 
-use_data = 1;
+use_data = 2;
 if use_data == 1
     % use nearest neighbor to set positive samples
     trainlabel = ones(size(traindata,1), 1) * 2;
@@ -36,18 +36,14 @@ else if use_data == 2
     end
 end
 
-% group samples from same class together
-dataandlabel = [trainlabel traindata];
-[sorted_data] = sortrows(dataandlabel, 1);
-trainlabel = sorted_data(:, 1);
-traindata = sorted_data(:, 2:end);
-
-unique_labels = length( unique(trainlabel) );
+% make label starts from 1
+trainlabel = trainlabel + 1;
 
 % separate into groups with same labels
-train_groups = cell(length(unique_labels), 1);
-for i=1:length(unique_labels)
-    train_groups{i,1} = find(trainlabel == )
+unique_label_num = length( unique(trainlabel) );
+train_groups = cell(unique_label_num, 1);
+for i=1:unique_label_num
+    train_groups{i,1} = find(trainlabel == i); 
 end
 
 
@@ -82,7 +78,60 @@ end
 % format: (samp_id, sim_id, dis_id)
 
 % randomly select subset from same class as positive, the rest as negative
-pair_num = 1000;
+triplet_num = 1000;
+sim_triplets = zeros(triplet_num, 6);
+for i=1:triplet_num
+    % select a sample
+    samp_cls_id = int(randsample(unique_label_num, 1));
+    samp_obj_id = int(randsample(train_groups{samp_cls_id},1));
+    % select similar sample from same class
+    sim_cls_id = samp_cls_id;
+    sim_obj_id = 0;
+    while 1
+        temp_obj_id = int(randsample(train_groups{samp_cls_id},1));
+        if temp_obj_id ~= samp_obj_id
+            sim_obj_id = temp_obj_id;
+            break;
+        end
+    end
+    % select dissimilar sample from different classes
+    dis_cls_id = 0;
+    while 1
+        temp_cls_id = int(randsample(unique_label_num,1));
+        if temp_cls_id ~= samp_cls_id
+            dis_cls_id = temp_obj_id;
+            break;
+        end
+    end
+    dis_obj_id = int(randsample(train_groups{dis_cls_id},1));
+    % add to collection
+    sim_triplets(i,:) = [samp_cls_id, samp_obj_id, sim_cls_id, sim_obj_id, dis_cls_id, dis_obj_id];
+end
 
+% pre_compute hamming distance vector for selected pairs
+% to cope with svm code, we 
+
+
+%% learn weights using ranksvm formulation
+% now use relative attribute code
+
+% construct parameters for svm code
+svm_opt.lin_cg = 0; % not use conjugate gradient
+svm_opt.iter_max_Newton = 20;   % Maximum number of Newton steps
+svm_opt.prec = 0.000001;    %   prec: Stopping criterion
+w_0 = zeros(1,1);   % initial weights
+
+% construct ordering and similarity matrix
+O = zeros(triplet_num, size(traincodes, 1));
+S = zeros(triplet_num, size(traincodes, 1));
+% Each row of O should contain exactly one +1 and one -1.
+for i=1:triplet_num
+    
+    
+    
+end
+
+
+w = ranksvm_with_sim(traincodes,O,S,C_O,C_S,w,opt);
 
 
