@@ -6,6 +6,8 @@
 % 3. learn weights
 % 4. evaluation
 
+%% init
+addpath('svm');
 
 %% load raw data
 % regular ml data format, treat as two groups, one for the same class, the
@@ -16,7 +18,7 @@ trainlabel = [];
 % dataset_name dataset_folder
 datasets = cell(4,2);
 datasets{1,1} = 'dummy'; datasets{1,2} = '';
-datasets{2,1} = 'CIFAR10';  datasets{2,2} = 'F:\Datasets\Recognition\CIFAR-10\cifar-10-binary\';
+datasets{2,1} = 'CIFAR10';  datasets{2,2} = 'H:\Datasets\Recognition\CIFAR10\';
 
 use_data = 2;
 if use_data == 1
@@ -88,13 +90,13 @@ triplet_num = 1000;
 sim_triplets = zeros(triplet_num, 6);
 for i=1:triplet_num
     % select a sample
-    samp_cls_id = int(randsample(unique_label_num, 1));
-    samp_obj_id = int(randsample(train_groups{samp_cls_id},1));
+    samp_cls_id = int32( randsample(unique_label_num, 1) );
+    samp_obj_id = int32( randsample(train_groups{samp_cls_id}, 1) );
     % select similar sample from same class
     sim_cls_id = samp_cls_id;
     sim_obj_id = 0;
     while 1
-        temp_obj_id = int(randsample(train_groups{samp_cls_id},1));
+        temp_obj_id = int32( randsample(train_groups{samp_cls_id}, 1) );
         if temp_obj_id ~= samp_obj_id
             sim_obj_id = temp_obj_id;
             break;
@@ -103,24 +105,28 @@ for i=1:triplet_num
     % select dissimilar sample from different classes
     dis_cls_id = 0;
     while 1
-        temp_cls_id = int(randsample(unique_label_num,1));
+        temp_cls_id = int32( randsample(unique_label_num, 1) );
         if temp_cls_id ~= samp_cls_id
-            dis_cls_id = temp_obj_id;
+            dis_cls_id = temp_cls_id;
             break;
         end
     end
-    dis_obj_id = int(randsample(train_groups{dis_cls_id},1));
+    dis_obj_id = int32( randsample(train_groups{dis_cls_id}, 1) );
     % add to collection
     sim_triplets(i,:) = [samp_cls_id, samp_obj_id, sim_cls_id, sim_obj_id, dis_cls_id, dis_obj_id];
 end
 
 % pre_compute hamming distance vector for selected pairs
 % to cope with svm code, each pair will be an invididual code sample
-code_dists = zeros(4*triplet_num, code_params.nbits);
+code_dist_vecs = zeros(2*triplet_num, code_params.nbits);
+added_idx = zeros(triplet_num, 2);
 for i=1:triplet_num
-    
+    code_dist_vecs(i*2-1,:) = abs( traincodes(sim_triplets(i,2), :) - traincodes(sim_triplets(i,4), :) );
+    code_dist_vecs(i*2,:) = abs( traincodes(sim_triplets(i,2), :) - traincodes(sim_triplets(i,6), :) );
+    % add new sample ids to triplets: sim_code_dist, dis_code_dist
+   added_idx(i,:) = [i*2-1 i*2];
 end
-
+sim_triplets = [sim_triplets added_idx];
 
 %% learn weights using ranksvm formulation
 % now use relative attribute code
@@ -129,19 +135,22 @@ end
 svm_opt.lin_cg = 0; % not use conjugate gradient
 svm_opt.iter_max_Newton = 20;   % Maximum number of Newton steps
 svm_opt.prec = 0.000001;    %   prec: Stopping criterion
-w_0 = zeros(1,1);   % initial weights
+w_0 = zeros(1,code_params.nbits);   % initial weights
 
-% construct ordering and similarity matrix
-O = zeros(triplet_num, size(traincodes, 1));
-S = zeros(triplet_num, size(traincodes, 1));
+% construct ordering and similarity matrix: pair_num X sample_num
+O = zeros(triplet_num, size(code_dist_vecs, 1));
+S = zeros(triplet_num, size(code_dist_vecs, 1));
 % Each row of O should contain exactly one +1 and one -1.
 for i=1:triplet_num
     
-    
-    
+    O(i, sim_triplets(i,7)) = -1;
+    O(i, sim_triplets(i,8)) = 1;
 end
 
+% use rank-svm first
+C = ones(1,triplet_num) * 0.1;
+W = ranksvm(code_dist_vecs, O, C', w_0', svm_opt); 
 
-w = ranksvm_with_sim(traincodes,O,S,C_O,C_S,w,opt);
+%w = ranksvm_with_sim(traincodes,O,S,C_O,C_S,w,opt);
 
 
