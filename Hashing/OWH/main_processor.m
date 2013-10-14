@@ -172,8 +172,8 @@ test_label = trainlabel(1,1);
 % compute pr values
 for i=1:size(traincodes, 1)
     % intersection value
-    base_inter_num = size( intersect( base_sorted_idx(1, 1:i), train_groups{test_label, 1} ), 2 );
-    learn_inter_num = size( intersect( learn_sorted_idx(1, 1:i), train_groups{test_label, 1} ), 2 );
+    base_inter_num = size( intersect( base_sorted_idx(1, 1:i), train_groups{test_label, 1} ), 1 );
+    learn_inter_num = size( intersect( learn_sorted_idx(1, 1:i), train_groups{test_label, 1} ), 1 );
     % precision
     base_inters(1,i) = double(base_inter_num) / i;
     learn_inters(1,i) = double(learn_inter_num) / i;
@@ -190,7 +190,7 @@ plot(base_inters(2,:), base_inters(1,:), 'r-')
 hold on
 plot(learn_inters(2,:), learn_inters(1,:), 'b-')
 hold on
-legend('lsh', 'owh')
+legend('SH', 'Learned')
 pause
 
 
