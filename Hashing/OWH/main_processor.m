@@ -84,7 +84,7 @@ end
 
 
 %% generate similarity pairs
-% format: (samp_id, sim_id, dis_id)
+% triplet format: (samp_id, sim_id, dis_id)
 
 % randomly select subset from same class as positive, the rest as negative
 triplet_num = 1000;
