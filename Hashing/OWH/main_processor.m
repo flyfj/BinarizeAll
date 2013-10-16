@@ -10,6 +10,9 @@
 addpath('svm');
 
 %% load raw data
+
+disp('Loading raw feature data...');
+
 % regular ml data format, treat as two groups, one for the same class, the
 % other for all different ones
 traindata = [];
@@ -18,8 +21,8 @@ trainlabel = [];
 % dataset_name dataset_folder
 datasets = cell(4,2);
 datasets{1,1} = 'dummy'; datasets{1,2} = '';
-datasets{2,1} = 'CIFAR10';  %datasets{2,2} = 'H:\Datasets\Recognition\CIFAR10\';
-datasets{2,2} = 'F:\Datasets\Recognition\CIFAR-10\cifar-10-binary\';
+datasets{2,1} = 'CIFAR10';  datasets{2,2} = 'H:\Datasets\Recognition\CIFAR10\';
+%datasets{2,2} = 'F:\Datasets\Recognition\CIFAR-10\cifar-10-binary\';
 
 use_data = 2;
 if use_data == 1
@@ -50,7 +53,11 @@ for i=1:unique_label_num
 end
 
 
+disp('Loaded raw feature data...');
+
 %% compute base hash code
+
+disp('Computing binary code for features...');
 
 % general binary code params
 code_params.nbits = 32;
@@ -83,87 +90,107 @@ else if codetype == 2
 end
 
 
-%% generate similarity pairs
-% triplet format: (samp_id, sim_id, dis_id)
+disp('Computing binary code for features done.');
 
-% randomly select subset from same class as positive, the rest as negative
-triplet_num = 1000;
-sim_triplets = zeros(triplet_num, 6);
-for i=1:triplet_num
-    % select a sample; now, force to learn for class 1
-    samp_cls_id = trainlabel(1,1); %int32( randsample(unique_label_num, 1) );
-    samp_obj_id = int32( randsample(train_groups{samp_cls_id}, 1) );
-    % select similar sample from same class
-    sim_cls_id = samp_cls_id;
-    sim_obj_id = 0;
-    while 1
-        temp_obj_id = int32( randsample(train_groups{samp_cls_id}, 1) );
-        if temp_obj_id ~= samp_obj_id
-            sim_obj_id = temp_obj_id;
-            break;
-        end
-    end
-    % select dissimilar sample from different classes
-    dis_cls_id = 0;
-    while 1
-        temp_cls_id = int32( randsample(unique_label_num, 1) );
-        if temp_cls_id ~= samp_cls_id
-            dis_cls_id = temp_cls_id;
-            break;
-        end
-    end
-    dis_obj_id = int32( randsample(train_groups{dis_cls_id}, 1) );
-    % add to collection
-    sim_triplets(i,:) = [samp_cls_id, samp_obj_id, sim_cls_id, sim_obj_id, dis_cls_id, dis_obj_id];
-end
+%% generate similarity pairs
+
+disp('Generating training pairs...');
+
+sim_data = genSimData(train_groups, 'pair');
 
 % pre_compute hamming distance vector for selected pairs
 % to cope with svm code, each pair will be an invididual code sample
-code_dist_vecs = zeros(2*triplet_num, code_params.nbits);
-added_idx = zeros(triplet_num, 2);
-for i=1:triplet_num
-    code_dist_vecs(i*2-1,:) = abs( traincodes(sim_triplets(i,2), :) - traincodes(sim_triplets(i,4), :) );
-    code_dist_vecs(i*2,:) = abs( traincodes(sim_triplets(i,2), :) - traincodes(sim_triplets(i,6), :) );
-    % add new sample ids to triplets: sim_code_dist, dis_code_dist
-   added_idx(i,:) = [i*2-1 i*2];
-end
-sim_triplets = [sim_triplets added_idx];
+
+% for triplet use
+% code_dist_vecs = zeros(2*triplet_num, code_params.nbits);
+% added_idx = zeros(triplet_num, 2);
+% for i=1:triplet_num
+%     code_dist_vecs(i*2-1,:) = abs( traincodes(sim_triplets(i,2), :) - traincodes(sim_triplets(i,4), :) );
+%     code_dist_vecs(i*2,:) = abs( traincodes(sim_triplets(i,2), :) - traincodes(sim_triplets(i,6), :) );
+%     % add new sample ids to triplets: sim_code_dist, dis_code_dist
+%    added_idx(i,:) = [i*2-1 i*2];
+% end
+% sim_triplets = [sim_triplets added_idx];
+
+
+disp('Generating training pairs done.');
 
 %% learn weights using ranksvm formulation
+
+disp('Learning weights...');
+
 % now use relative attribute code
+
+svm_type = 'normal';
 
 % construct parameters for svm code
 svm_opt.lin_cg = 0; % not use conjugate gradient
-svm_opt.iter_max_Newton = 20;   % Maximum number of Newton steps
+svm_opt.iter_max_Newton = 100;   % Maximum number of Newton steps
 svm_opt.prec = 0.000001;    %   prec: Stopping criterion
-w_0 = zeros(1, code_params.nbits);   % initial weights
+w_0 = ones(1, code_params.nbits);   % initial weights
+W = [];
 
-% construct ordering and similarity matrix: pair_num X sample_num
-O = zeros(triplet_num, size(code_dist_vecs, 1));
-S = zeros(triplet_num, size(code_dist_vecs, 1));
-% Each row of O should contain exactly one +1 and one -1.
-for i=1:triplet_num
+if strcmp(svm_type, 'ranksvm')
     
-    O(i, sim_triplets(i,7)) = -1;
-    O(i, sim_triplets(i,8)) = 1;
+    % construct ordering and similarity matrix: pair_num X sample_num
+    O = zeros(length(sim_data{2,1}), size(traincodes, 1));
+    S = zeros(length(sim_data{1,1}), size(traincodes, 1));
+    % Each row of O should contain exactly one +1 and one -1.
+    for i=1:length(sim_data{2,1})
+
+        O(i, sim_data{2,1}(i,2)) = -1;
+        O(i, sim_data{2,1}(i,4)) = 1;
+    end
+
+    for i=1:length(sim_data{1,1})
+
+        S(i, sim_data{1,1}(i,2)) = -1;
+        S(i, sim_data{1,1}(i,4)) = 1;
+    end
+
+    % use rank-svm first
+    C = ones(1,length(sim_data{2,1})) * 0.1;
+    W = ranksvm(traincodes, O, C', w_0', svm_opt); 
+
+    %w = ranksvm_with_sim(traincodes,O,S,C_O,C_S,w,opt);
+    
 end
 
-% use rank-svm first
-C = ones(1,triplet_num) * 0.1;
-W = ranksvm(code_dist_vecs, O, C', w_0', svm_opt); 
+if strcmp(svm_type, 'normal')
+    
+    % use hamming distance vector as sample
+    global X;
+    X = zeros(length(sim_data{1,1})+length(sim_data{2,1}), code_params.nbits);
+    newlabels = zeros(size(X,1), 1);
+    for i=1:length(sim_data{1,1})
+        X(i,:) = abs(traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,4), :));
+        newlabels(i,1) = 1;
+    end
+    for i=1:length(sim_data{2,1})
+        X(i+length(sim_data{1,1}),:) = abs(traincodes(sim_data{2,1}(i,2), :) - traincodes(sim_data{2,1}(i,4), :));
+        newlabels(i+length(sim_data{1,1}), 1) = 1;
+        newlabels(i+length(sim_data{1,1}), 1) = -1;
+    end
+    
+end
 
-%w = ranksvm_with_sim(traincodes,O,S,C_O,C_S,w,opt);
+[W,b0,obj] = primal_svm(1,newlabels,1,svm_opt)
 
+disp('Weights learned.');
 
 %% evaluation
 
 % use weights and no weights to compute ranking list for one sample first
 % use base code: dist and cls_id
-w1 = ones(1, code_params.nbits);
-base_dists = weightedHam(traincodes(1,:), traincodes, w1);
+w1 = ones(code_params.nbits, 1);
+
+validConstraintNum(traincodes, w1, sim_data)
+base_dists = weightedHam(traincodes(1,:), traincodes, w1');
 [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
 base_inters = zeros(2, size(traincodes, 1));
+
 % use learned weights
+validConstraintNum(traincodes, W, sim_data)
 learn_dists = weightedHam(traincodes(1,:), traincodes, W');
 [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
 learn_inters = zeros(2, size(traincodes, 1));
