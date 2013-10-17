@@ -21,8 +21,8 @@ trainlabel = [];
 % dataset_name dataset_folder
 datasets = cell(4,2);
 datasets{1,1} = 'dummy'; datasets{1,2} = '';
-datasets{2,1} = 'CIFAR10';  datasets{2,2} = 'H:\Datasets\Recognition\CIFAR10\';
-%datasets{2,2} = 'F:\Datasets\Recognition\CIFAR-10\cifar-10-binary\';
+datasets{2,1} = 'CIFAR10';  %datasets{2,2} = 'H:\Datasets\Recognition\CIFAR10\';
+datasets{2,2} = 'F:\Datasets\Recognition\CIFAR-10\cifar-10-binary\';
 
 use_data = 2;
 if use_data == 1
@@ -68,7 +68,7 @@ codetypes{1,1} = 'SH'; codetypes{1,2} = '../SH/';
 codetypes{2,1} = 'ITQ'; codetypes{2,2} = '../ITQ/';
 codetypes{3,1} = 'LSH'; codetypes{3,2} = '';
 
-code_type = 3;
+code_type = 1;
 traincodes = [];
 
 % add code path
@@ -103,22 +103,7 @@ disp('Computing binary code for features done.');
 
 disp('Generating training pairs...');
 
-sim_data = genSimData(train_groups, 'pair');
-
-% pre_compute hamming distance vector for selected pairs
-% to cope with svm code, each pair will be an invididual code sample
-
-% for triplet use
-% code_dist_vecs = zeros(2*triplet_num, code_params.nbits);
-% added_idx = zeros(triplet_num, 2);
-% for i=1:triplet_num
-%     code_dist_vecs(i*2-1,:) = abs( traincodes(sim_triplets(i,2), :) - traincodes(sim_triplets(i,4), :) );
-%     code_dist_vecs(i*2,:) = abs( traincodes(sim_triplets(i,2), :) - traincodes(sim_triplets(i,6), :) );
-%     % add new sample ids to triplets: sim_code_dist, dis_code_dist
-%    added_idx(i,:) = [i*2-1 i*2];
-% end
-% sim_triplets = [sim_triplets added_idx];
-
+sim_data = genSimData(train_groups, 'triplet');
 
 disp('Generating training pairs done.');
 
@@ -128,38 +113,57 @@ disp('Learning weights...');
 
 % now use relative attribute code
 
-svm_type = 'normal';
+svm_type = 'ranksvm';
 
 % construct parameters for svm code
 svm_opt.lin_cg = 0; % not use conjugate gradient
-svm_opt.iter_max_Newton = 100;   % Maximum number of Newton steps
-svm_opt.prec = 0.000001;    %   prec: Stopping criterion
+svm_opt.iter_max_Newton = 200;   % Maximum number of Newton steps
+svm_opt.prec = 0.0000000001;    %   prec: Stopping criterion
 w_0 = ones(1, code_params.nbits);   % initial weights
 W = [];
 
 if strcmp(svm_type, 'ranksvm')
     
-    % construct ordering and similarity matrix: pair_num X sample_num
-    O = zeros(length(sim_data{2,1}), size(traincodes, 1));
-    S = zeros(length(sim_data{1,1}), size(traincodes, 1));
-    % Each row of O should contain exactly one +1 and one -1.
-    for i=1:length(sim_data{2,1})
+    % pre_compute hamming distance vector for selected pairs
+    % to cope with svm code, each pair will be an invididual code sample
 
-        O(i, sim_data{2,1}(i,2)) = -1;
-        O(i, sim_data{2,1}(i,4)) = 1;
+    % for triplet use
+    triplet_num = length(sim_data{1,1});
+    code_dist_vecs = zeros(3*triplet_num, code_params.nbits);
+    ordered_idx = zeros(triplet_num, 2);
+    sim_idx = zeros(triplet_num, 2);
+    for i=1:triplet_num
+        % compute similar pair distance
+        code_dist_vecs(i*3-2,:) = abs( traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,4), :) );
+        code_dist_vecs(i*3-1,:) = abs( traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,6), :) );
+        code_dist_vecs(i*3, :) = abs( traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,8), :) );
+        % add new sample ids to triplets: sim_code_dist, dis_code_dist
+        sim_idx(i,:) = [i*3-2 i*3-1];
+        ordered_idx(i,:) = [i*3-2 i*3];
+    end
+    
+    % construct ordering and similarity matrix: pair_num X sample_num
+    O = zeros(triplet_num, size(code_dist_vecs, 1));
+    S = zeros(triplet_num, size(code_dist_vecs, 1));
+    % Each row of O should contain exactly one +1 and one -1.
+    for i=1:length(sim_idx)
+
+        S(i, sim_idx(i,1)) = -1;
+        S(i, sim_idx(i,2)) = 1;
     end
 
-    for i=1:length(sim_data{1,1})
+    for i=1:length(ordered_idx)
 
-        S(i, sim_data{1,1}(i,2)) = -1;
-        S(i, sim_data{1,1}(i,4)) = 1;
+        O(i, ordered_idx(i,1)) = -1;
+        O(i, ordered_idx(i,2)) = 1;
     end
 
     % use rank-svm first
-    C = ones(1,length(sim_data{2,1})) * 0.1;
-    W = ranksvm(traincodes, O, C', w_0', svm_opt); 
+    C_S = ones(1,length(sim_data{1,1})) * 0.1;
+    C_O = ones(1,length(sim_data{1,1})) * 0.1;
+   % W = ranksvm(code_dist_vecs, O, C', w_0', svm_opt); 
 
-    %w = ranksvm_with_sim(traincodes,O,S,C_O,C_S,w,opt);
+    W = ranksvm_with_sim(code_dist_vecs, O, S, C_O', C_S', w_0', svm_opt);
     
 elseif strcmp(svm_type, 'normal')
     
@@ -213,7 +217,7 @@ elseif strcmp(svm_type, 'normal')
     xlabel('Recall')
     ylabel('Precision')
     hold on
-    axis[0 1 0 1];
+    axis([0 1 0 1]);
     hold on
     plot(score_inters(2,:), score_inters(1,:), 'r-')
     hold on
@@ -264,7 +268,7 @@ plot(base_inters(2,:), base_inters(1,:), 'r-')
 hold on
 plot(learn_inters(2,:), learn_inters(1,:), 'b-')
 hold on
-legend('SH', 'Learned')
+legend('base', 'Learned')
 pause
 
 
