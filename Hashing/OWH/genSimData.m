@@ -18,8 +18,8 @@ if strcmp(type, 'pair')
     sim_data = cell(2,1);
     
     % sample certain number
-    sim_pair_num = 1000;
-    sim_data{1,1} = zeros(1000, 4);
+    sim_pair_num = 2000;
+    sim_data{1,1} = zeros(sim_pair_num, 4);
     
     % similar pairs within each class
     for i=1:sim_pair_num
@@ -48,8 +48,9 @@ if strcmp(type, 'pair')
 %         end
 %     end
     
-    dis_pair_num = 1000;
+    dis_pair_num = 2000;
     sim_data{2,1} = zeros(dis_pair_num, 4);
+    
     % dissimilar pairs in different classes
     for i=1:dis_pair_num
         samp_cls_id = int32( randsample(cls_num, 1) );
@@ -68,7 +69,7 @@ if strcmp(type, 'pair')
         sim_data{2,1}(i,:) = [samp_cls_id samp_obj_id dis_cls_id dis_obj_id];
     end
     
-else if strcmp(type, 'triplet')
+elseif strcmp(type, 'triplet')
         
         % triplet format: (samp_id, sim_id, dis_id)
         % randomly select subset from same class as positive, the rest as negative
@@ -106,7 +107,6 @@ else if strcmp(type, 'triplet')
         
         sim_data = sim_triplets;
         
-    end
 end
 
 

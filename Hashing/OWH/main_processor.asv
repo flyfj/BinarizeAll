@@ -185,7 +185,7 @@ elseif strcmp(svm_type, 'normal')
     % test classification performance
     
     %pred_labels = svmclassify(svmmodel, X);
-    [pred_labels, accuracy, scores] = svmpredict(newlabels, X, svmmodel);
+    [pred_labels accuracy scores] = svmpredict(newlabels, X, svmmodel);
     
     % test a query
     testid = 44;
@@ -193,32 +193,9 @@ elseif strcmp(svm_type, 'normal')
     test_dist_vecs = abs(test_dist_vecs - traincodes);
     truelabels = -ones(size(traincodes,1), 1);
     truelabels(train_groups{trainlabel(testid,1), 1}) = 1;
-    [pred_labels, accuracy, scores] = svmpredict(truelabels, test_dist_vecs, svmmodel);
-%     corr_num = intersect( find(pred_labels==1), train_groups{trainlabel(testid,1), 1} );
-%     corr_num = length(corr_num) / length(train_groups{trainlabel(testid,1), 1});
-    
-    % use scores to simply evaluate ranking performance
-    [scores_sorted, score_sorted_idx] = sort(scores, 1, 'descend');
-    score_inters = zeros(2, size(traincodes, 1));
-    for i=1:size(traincodes, 1)
-        % intersection value
-        inter_num = length( intersect( score_sorted_idx(1:i, 1), train_groups{trainlabel(testid, 1), 1} ) );
-        % precision
-        score_inters(1,i) = double(inter_num) / i;
-        % recall
-        score_inters(2,i) = double(inter_num) / size(train_groups{trainlabel(testid, 1), 1}, 1);
-    end
-
-    % draw precision curve
-    xlabel('Recall')
-    ylabel('Precision')
-    hold on
-    axis[0 1 0 1];
-    hold on
-    plot(score_inters(2,:), score_inters(1,:), 'r-')
-    hold on
-    legend('Clf')
-    pause
+    pred_labels = svmpredict(truelabels, test_dist_vecs, svmmodel);
+    corr_num = intersect( find(pred_labels==1), train_groups{trainlabel(testid,1), 1} );
+    corr_num = length(corr_num) / length(train_groups{trainlabel(testid,1), 1});
     
 end
 

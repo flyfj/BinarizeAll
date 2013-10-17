@@ -6,8 +6,8 @@ function num = validConstraintNum( traincodes, W, sim_data )
 num = 0;
 for i=1:length(sim_data{2,1})
     
-    if W'*abs(traincodes(sim_data{2,1}(i,2), :) - traincodes(sim_data{2,1}(i,4), :))' > 16
-        num = num+1;
+    if W'*abs(traincodes(sim_data{2,1}(i,2), :) - traincodes(sim_data{2,1}(i,4), :))' > 0
+        num = num + 1;
     end
 
 end
