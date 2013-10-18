@@ -15,41 +15,17 @@ disp('Loading raw feature data...');
 
 % regular ml data format, treat as two groups, one for the same class, the
 % other for all different ones
-traindata = [];
-trainlabel = [];
+use_data = 3;
 
-% dataset_name dataset_folder
-datasets = cell(4,2);
-datasets{1,1} = 'dummy'; datasets{1,2} = '';
-datasets{2,1} = 'CIFAR10';  %datasets{2,2} = 'H:\Datasets\Recognition\CIFAR10\';
-datasets{2,2} = 'F:\Datasets\Recognition\CIFAR-10\cifar-10-binary\';
-
-use_data = 2;
-if use_data == 1
-    % use nearest neighbor to set positive samples
-    trainlabel = ones(size(traindata,1), 1) * 2;
-    [traindata, traindistmat] = gen_dummy_data(300, 100);
-    neighbor_num = 100;
-    [sorted_dist, sorted_idx] = sort(traindist, 2);
-    similar_bound = mean( sorted_dist(:, neighbor_num) );
-    % !not clear how to do label here!
-    similar_ids = sorted_idx(traindistmat < similar_bound);
-    trainlabel(similar_ids, 1) = 1;
-else if use_data == 2
-        % load gist from file
-        traindata = load([datasets{2,2} 'train_1_gist.txt']);
-        trainlabel = load([datasets{2,2} 'train_1_label.txt']);
-    end
-end
-
+[traindata, trainlabels] = loadTrainingData(use_data);
 % make label starts from 1
-trainlabel = trainlabel + 1;
+trainlabels = trainlabels + 1;
 
 % separate into groups with same labels
-unique_label_num = length( unique(trainlabel) );
+unique_label_num = length( unique(trainlabels) );
 train_groups = cell(unique_label_num, 1);
 for i=1:unique_label_num
-    train_groups{i,1} = find(trainlabel == i); 
+    train_groups{i,1} = find(trainlabels == i); 
 end
 
 
@@ -196,7 +172,7 @@ elseif strcmp(svm_type, 'normal')
     test_dist_vecs = repmat(traincodes(testid,:), size(traincodes, 1), 1);
     test_dist_vecs = abs(test_dist_vecs - traincodes);
     truelabels = -ones(size(traincodes,1), 1);
-    truelabels(train_groups{trainlabel(testid,1), 1}) = 1;
+    truelabels(train_groups{trainlabels(testid,1), 1}) = 1;
     [pred_labels, accuracy, scores] = svmpredict(truelabels, test_dist_vecs, svmmodel);
 %     corr_num = intersect( find(pred_labels==1), train_groups{trainlabel(testid,1), 1} );
 %     corr_num = length(corr_num) / length(train_groups{trainlabel(testid,1), 1});
@@ -206,11 +182,11 @@ elseif strcmp(svm_type, 'normal')
     score_inters = zeros(2, size(traincodes, 1));
     for i=1:size(traincodes, 1)
         % intersection value
-        inter_num = length( intersect( score_sorted_idx(1:i, 1), train_groups{trainlabel(testid, 1), 1} ) );
+        inter_num = length( intersect( score_sorted_idx(1:i, 1), train_groups{trainlabels(testid, 1), 1} ) );
         % precision
         score_inters(1,i) = double(inter_num) / i;
         % recall
-        score_inters(2,i) = double(inter_num) / size(train_groups{trainlabel(testid, 1), 1}, 1);
+        score_inters(2,i) = double(inter_num) / size(train_groups{trainlabels(testid, 1), 1}, 1);
     end
 
     % draw precision curve
@@ -235,29 +211,32 @@ disp('Weights learned.');
 % use base code: dist and cls_id
 w1 = ones(code_params.nbits, 1);
 
+testsamp = 1200;
+testlabel = trainlabels(testsamp,1);
+
 validConstraintNum(traincodes, w1, sim_data)
-base_dists = weightedHam(traincodes(1,:), traincodes, w1');
+base_dists = weightedHam(traincodes(testsamp, :), traincodes, w1');
 [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
 base_inters = zeros(2, size(traincodes, 1));
 
 % use learned weights
 validConstraintNum(traincodes, W, sim_data)
-learn_dists = weightedHam(traincodes(1,:), traincodes, W');
+learn_dists = weightedHam(traincodes(testsamp, :), traincodes, W');
 [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
 learn_inters = zeros(2, size(traincodes, 1));
 
-test_label = trainlabel(1,1);
+
 % compute pr values
 for i=1:size(traincodes, 1)
     % intersection value
-    base_inter_num = size( intersect( base_sorted_idx(1, 1:i), train_groups{test_label, 1} ), 1 );
-    learn_inter_num = size( intersect( learn_sorted_idx(1, 1:i), train_groups{test_label, 1} ), 1 );
+    base_inter_num = size( intersect( base_sorted_idx(1, 1:i), train_groups{testlabel, 1} ), 1 );
+    learn_inter_num = size( intersect( learn_sorted_idx(1, 1:i), train_groups{testlabel, 1} ), 1 );
     % precision
     base_inters(1,i) = double(base_inter_num) / i;
     learn_inters(1,i) = double(learn_inter_num) / i;
     % recall
-    base_inters(2,i) = double(base_inter_num) / size(train_groups{test_label, 1}, 1);
-    learn_inters(2,i) = double(learn_inter_num) / size(train_groups{test_label, 1}, 1);
+    base_inters(2,i) = double(base_inter_num) / size(train_groups{testlabel, 1}, 1);
+    learn_inters(2,i) = double(learn_inter_num) / size(train_groups{testlabel, 1}, 1);
 end
 
 % draw precision curve
