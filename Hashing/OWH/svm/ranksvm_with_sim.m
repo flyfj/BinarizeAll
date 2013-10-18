@@ -117,6 +117,12 @@ while 1
     % Do an exact line search
     [t,out] = line_search_linear(w,step,out,C);
     
+%     w_old = w;
+%     w = w + t*step;
+%     % to avoid zero or negative value for w
+%     % recover non-positive value to original value
+%     invalid_ids = find(w <= 0);
+%     w(invalid_ids) = w_old(invalid_ids);
     w = w + t*step;
     %fprintf(['Iter = %d, Obj = %f, Nb of sv = %d, Newton decr = %.3f, ' ...
     %         'Line search = %.3f, Lin CG acc = %.4f     \n'],...
