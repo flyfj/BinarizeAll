@@ -18,7 +18,7 @@ if strcmp(type, 'pair')
     sim_data = cell(2,1);
     
     % sample certain number
-    sim_pair_num = 2000;
+    sim_pair_num = 4000;
     sim_data{1,1} = zeros(sim_pair_num, 4);
     
     % similar pairs within each class
@@ -48,7 +48,7 @@ if strcmp(type, 'pair')
 %         end
 %     end
     
-    dis_pair_num = 2000;
+    dis_pair_num = 4000;
     sim_data{2,1} = zeros(dis_pair_num, 4);
     
     % dissimilar pairs in different classes
@@ -74,13 +74,17 @@ elseif strcmp(type, 'triplet')
         % triplet format: (samp_id, sim_id, dis_id)
         % randomly select subset from same class as positive, the rest as negative
         unique_label_num = size(cls_samp_ids, 1);
-        triplet_num = 1000;
+        triplet_num = 6000;
         sim_triplets = cell(1,1);
-        sim_triplets{1,1} = zeros(triplet_num, 6);
+        % 1-2: query; 3-4: 1st sim; 5-6: 2nd sim; 7-8: dis
+        sim_triplets{1,1} = zeros(triplet_num, 8);
+        %sim_triplets{2,1} = zeros(triplet_num, 6);
+        
         for i=1:triplet_num
             % select a sample; now, force to learn for class 1
-            samp_cls_id = int32( randsample(unique_label_num, 1) );
+            samp_cls_id = 7;    %int32( randsample(unique_label_num, 1) );
             samp_obj_id = int32( randsample(cls_samp_ids{samp_cls_id}, 1) );
+            
             % select similar sample from same class
             sim_cls_id = samp_cls_id;
             sim_obj_id = 0;
@@ -91,6 +95,18 @@ elseif strcmp(type, 'triplet')
                     break;
                 end
             end
+            
+            % select another similar sample from same class
+            sim_cls_id2 = samp_cls_id;
+            sim_obj_id2 = 0;
+            while 1
+                temp_obj_id = int32( randsample(cls_samp_ids{samp_cls_id}, 1) );
+                if temp_obj_id ~= samp_obj_id && temp_obj_id ~= sim_obj_id
+                    sim_obj_id2 = temp_obj_id;
+                    break;
+                end
+            end
+            
             % select dissimilar sample from different classes
             dis_cls_id = 0;
             while 1
@@ -101,8 +117,10 @@ elseif strcmp(type, 'triplet')
                 end
             end
             dis_obj_id = int32( randsample(cls_samp_ids{dis_cls_id}, 1) );
+            
             % add to collection
-            sim_triplets{1,1}(i,:) = [samp_cls_id, samp_obj_id, sim_cls_id, sim_obj_id, dis_cls_id, dis_obj_id];
+            sim_triplets{1,1}(i,:) = [samp_cls_id, samp_obj_id, sim_cls_id, sim_obj_id, sim_cls_id2, sim_obj_id2, dis_cls_id, dis_obj_id];
+            
         end
         
         sim_data = sim_triplets;

@@ -40,8 +40,12 @@ function w = ranksvm(X_,A_,C,w,opt)
   if nargin<4
     w = zeros(d,1); 
   end; 
+  
   iter = 0;
-  out = 0.5-A*(X*w);
+  %out = 1-A*(X*w);  % cost value: to change
+  % convert cost for pair-wise hamming distance vector
+  out = 16 - abs(A*X) * w;
+  
   
   while 1
     iter = iter + 1;
@@ -60,7 +64,7 @@ function w = ranksvm(X_,A_,C,w,opt)
       [step, foo, relres] = minres(@hess_vect_mult, -grad,...
                                    opt.cg_prec,opt.cg_it,[],[],[],sv,C);
     else
-      Xsv = A(sv,:)*X;
+      Xsv = (A(sv,:)*X).^2;  %A(sv,:)*X;
       hess = eye(d) + Xsv'*(Xsv.*repmat(C(sv),1,d)); % Hessian
       step  = - hess \ grad;   % Newton direction
       relres = 0;
@@ -75,7 +79,6 @@ function w = ranksvm(X_,A_,C,w,opt)
     % recover non-positive value to original value
     invalid_ids = find(w <= 0);
     w(invalid_ids) = w_old(invalid_ids);
-    
     
     fprintf(['Iter = %d, Obj = %f, Nb of sv = %d, Newton decr = %.3f, ' ...
              'Line search = %.3f, Lin CG acc = %.4f     \n'],...
@@ -94,16 +97,16 @@ function [obj, grad, sv] = obj_fun_linear(w,C,out)
   global X A
   out = max(0,out);
   obj = sum(C.*out.^2)/2 + w'*w/2; % L2 penalization of the errors
-  grad = w - (((C.*out)'*A)*X)'; % Gradient
-  sv = out>0;  
+  grad = w - ((C.*out)'*abs(A*X))';  %w - (((C.*out)'*A)*X).^2'; % Gradient
+  sv = out>0;
   
   
 function y = hess_vect_mult(w,sv,C)
   % Compute the Hessian times a given vector x.
   global X A
   y = w;
-  z = (C.*sv).*(A*(X*w));  % Computing X(sv,:)*x takes more time in Matlab :-(
-  y = y + ((z'*A)*X)';
+  z = (C.*sv).*abs(A*(X*w));  % Computing X(sv,:)*x takes more time in Matlab :-(
+  y = y + abs((z'*A)*X)';
   
   
 function [t,out] = line_search_linear(w,d,out,C) 
@@ -112,7 +115,7 @@ function [t,out] = line_search_linear(w,d,out,C)
   global X A
   t = 0;
   % Precompute some dots products
-  Xd = A*(X*d);
+  Xd = abs(A*(X*d));
   wd = w'*d;
   dd = d'*d;
   while 1
