@@ -21,6 +21,9 @@ use_data = 3;
 % make label starts from 1
 trainlabels = trainlabels + 1;
 
+% use subset as test data
+
+
 % separate into groups with same labels
 unique_label_num = length( unique(trainlabels) );
 train_groups = cell(unique_label_num, 1);
