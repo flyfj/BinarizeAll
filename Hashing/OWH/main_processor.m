@@ -214,7 +214,7 @@ disp('Weights learned.');
 % use base code: dist and cls_id
 w1 = ones(code_params.nbits, 1);
 
-testsamp = 1;
+testsamp = 3444;
 testlabel = trainlabels(testsamp,1);
 
 validConstraintNum(traincodes, w1, sim_data)

@@ -74,7 +74,7 @@ elseif strcmp(type, 'triplet')
         % triplet format: (samp_id, sim_id, dis_id)
         % randomly select subset from same class as positive, the rest as negative
         unique_label_num = size(cls_samp_ids, 1);
-        triplet_num = 6000;
+        triplet_num = 4000;
         sim_triplets = cell(1,1);
         % 1-2: query; 3-4: 1st sim; 5-6: 2nd sim; 7-8: dis
         sim_triplets{1,1} = zeros(triplet_num, 8);
@@ -82,7 +82,7 @@ elseif strcmp(type, 'triplet')
         
         for i=1:triplet_num
             % select a sample; now, force to learn for class 1
-            samp_cls_id = 1;%int32( randsample(unique_label_num, 1) );
+            samp_cls_id = 4;%int32( randsample(unique_label_num, 1) );
             samp_obj_id = int32( randsample(cls_samp_ids{samp_cls_id}, 1) );
             
             % select similar sample from same class
