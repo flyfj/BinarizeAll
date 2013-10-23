@@ -30,8 +30,8 @@ unique_label_num = length( unique(trainlabels) );
 train_groups = cell(unique_label_num, 1);
 for i=1:unique_label_num
     cls_ids = find(trainlabels == i);
-    train_ids = cls_ids(1:int32(length(cls_ids)*0.8), 1);
-    test_ids = cls_ids(int32(length(cls_ids)*0.8)+1:end, 1);
+    train_ids = cls_ids(1, 1:int32(length(cls_id)*0.8));
+    test_ids = cls_ids(1, int32(length(cls_id)*0.8):length(cls_id));
     % 8-2
     train_groups{i,1} = train_ids;
     testdata = [testdata; traindata(test_ids, :)];
@@ -56,7 +56,6 @@ codetypes{3,1} = 'LSH'; codetypes{3,2} = '';
 
 code_type = 1;
 traincodes = [];
-testcodes = [];
 
 % add code path
 addpath(genpath(codetypes{code_type, 2}));
@@ -71,15 +70,6 @@ if code_type == 1
         traincodes_str = [traincodes_str dec2bin(traincodes(:,i), 8)];
     end
     traincodes = traincodes_str - '0';
-    % test codes
-    [testcodes, U] = compressSH(testdata, sh_params);
-    % convert to 0/1 array
-    testcodes_str = [];
-    for i=1:size(testcodes, 2)
-        testcodes_str = [testcodes_str dec2bin(testcodes(:,i), 8)];
-    end
-    testcodes = testcodes_str - '0';
-    
 elseif code_type == 2
     % learn itq
 elseif code_type == 3
@@ -90,10 +80,6 @@ elseif code_type == 3
     traincodes = (lsh_params.funcs * traindata')';
     traincodes( traincodes>0 ) = 1;
     traincodes( traincodes<0 ) = 0;
-    % test codes
-    testcodes = (lsh_params.funcs * testdata')';
-    testcodes( testcodes>0 ) = 1;
-    testcodes( testcodes<0 ) = 0;
 end
 
 
@@ -235,17 +221,17 @@ disp('Weights learned.');
 % use base code: dist and cls_id
 w1 = ones(code_params.nbits, 1);
 
-testsamp = testcodes(20, :);
-testlabel = testlabels(20, :);
+testsamp = 3444;
+testlabel = trainlabels(testsamp,1);
 
 validConstraintNum(traincodes, w1, sim_data)
-base_dists = weightedHam(testsamp, traincodes, w1');
+base_dists = weightedHam(traincodes(testsamp, :), traincodes, w1');
 [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
 base_inters = zeros(2, size(traincodes, 1));
 
 % use learned weights
 validConstraintNum(traincodes, W, sim_data)
-learn_dists = weightedHam(testsamp, traincodes, W');
+learn_dists = weightedHam(traincodes(testsamp, :), traincodes, W');
 [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
 learn_inters = zeros(2, size(traincodes, 1));
 
