@@ -235,41 +235,53 @@ disp('Weights learned.');
 % use base code: dist and cls_id
 w1 = ones(code_params.nbits, 1);
 
-testsamp = testcodes(20, :);
-testlabel = testlabels(20, :);
-
 validConstraintNum(traincodes, w1, sim_data)
-base_dists = weightedHam(testsamp, traincodes, w1');
-[base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
-base_inters = zeros(2, size(traincodes, 1));
-
-% use learned weights
 validConstraintNum(traincodes, W, sim_data)
-learn_dists = weightedHam(testsamp, traincodes, W');
-[learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
-learn_inters = zeros(2, size(traincodes, 1));
 
+% every two columns represent one test sample
+numtest = 10;
+base_pr = zeros(size(traincodes, 1), 2*numtest);
+learn_pr = zeros(size(traincodes, 1), 2*numtest);
 
-% compute pr values
-for i=1:size(traincodes, 1)
-    % intersection value
-    base_inter_num = size( intersect( base_sorted_idx(1, 1:i), train_groups{testlabel, 1} ), 1 );
-    learn_inter_num = size( intersect( learn_sorted_idx(1, 1:i), train_groups{testlabel, 1} ), 1 );
-    % precision
-    base_inters(1,i) = double(base_inter_num) / i;
-    learn_inters(1,i) = double(learn_inter_num) / i;
-    % recall
-    base_inters(2,i) = double(base_inter_num) / size(train_groups{testlabel, 1}, 1);
-    learn_inters(2,i) = double(learn_inter_num) / size(train_groups{testlabel, 1}, 1);
+for i=1:numtest
+    % process current code
+    testlabel = testlabels(i+30, :);
+    testsamp = testcodes(i+30,:);
+    base_dists = weightedHam(testsamp, traincodes, w1');
+    [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
+
+    % use learned weights
+    learn_dists = weightedHam(testsamp, traincodes, W');
+    [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
+
+    % compute pr values
+    for j=1:size(traincodes, 1)
+        % intersection value
+        base_inter_num = size( intersect( base_sorted_idx(1, 1:j), train_groups{testlabel, 1} ), 1 );
+        learn_inter_num = size( intersect( learn_sorted_idx(1, 1:j), train_groups{testlabel, 1} ), 1 );
+        % precision
+        base_pr(j,2*i-1) = double(base_inter_num) / j;
+        learn_pr(j,2*i-1) = double(learn_inter_num) / j;
+        % recall
+        base_pr(j,2*i) = double(base_inter_num) / size(train_groups{testlabel, 1}, 1);
+        learn_pr(j,2*i) = double(learn_inter_num) / size(train_groups{testlabel, 1}, 1);
+    end
+    
 end
+
+% compute average pr
+p_ids = 1:2:size(base_pr,2);
+r_ids = 2:2:size(base_pr,2);
+base_pr = [mean(base_pr(:,p_ids), 2), mean(base_pr(:,r_ids), 2)];
+learn_pr = [mean(learn_pr(:,p_ids), 2), mean(learn_pr(:,r_ids), 2)];
 
 % draw precision curve
 xlabel('Recall')
 ylabel('Precision')
 hold on
-plot(base_inters(2,:), base_inters(1,:), 'r-')
+plot(base_pr(:,2), base_pr(:,1), 'r-')
 hold on
-plot(learn_inters(2,:), learn_inters(1,:), 'b-')
+plot(learn_pr(:,2), learn_pr(:,1), 'b-')
 hold on
 legend('base', 'Learned')
 pause
