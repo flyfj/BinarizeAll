@@ -99,6 +99,7 @@ while 1
         break;
     end;
     
+    % get objective, gradient and support vectors
     [obj, grad, sv] = obj_fun_linear(w,C,out);
     
     % Compute the Newton direction either by linear CG
