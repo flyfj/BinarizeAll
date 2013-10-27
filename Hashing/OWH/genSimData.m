@@ -74,7 +74,7 @@ elseif strcmp(type, 'triplet')
         % triplet format: (samp_id, sim_id, dis_id)
         % randomly select subset from same class as positive, the rest as negative
         unique_label_num = size(cls_samp_ids, 1);
-        triplet_num = 4000;
+        triplet_num = 6000;
         sim_triplets = cell(1,1);
         % 1-2: query; 3-4: 1st sim; 5-6: 2nd sim; 7-8: dis
         sim_triplets{1,1} = zeros(triplet_num, 8);

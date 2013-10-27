@@ -33,7 +33,7 @@ for i=1:unique_label_num
     train_ids = cls_ids(1:int32(length(cls_ids)*0.8), 1);
     test_ids = cls_ids(int32(length(cls_ids)*0.8)+1:end, 1);
     % 8-2
-    train_groups{i,1} = train_ids;
+    train_groups{i,1} = cls_ids;
     testdata = [testdata; traindata(test_ids, :)];
     testlabels = [testlabels; trainlabels(test_ids, :)];
 end
@@ -239,14 +239,14 @@ validConstraintNum(traincodes, w1, sim_data)
 validConstraintNum(traincodes, W, sim_data)
 
 % every two columns represent one test sample
-numtest = 10;
+numtest = 30;
 base_pr = zeros(size(traincodes, 1), 2*numtest);
 learn_pr = zeros(size(traincodes, 1), 2*numtest);
 
 for i=1:numtest
     % process current code
-    testlabel = testlabels(i+30, :);
-    testsamp = testcodes(i+30,:);
+    testlabel = testlabels(i, :);
+    testsamp = testcodes(i,:);
     base_dists = weightedHam(testsamp, traincodes, w1');
     [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
 
@@ -278,6 +278,8 @@ learn_pr = [mean(learn_pr(:,p_ids), 2), mean(learn_pr(:,r_ids), 2)];
 % draw precision curve
 xlabel('Recall')
 ylabel('Precision')
+hold on
+axis([0,1,0,1]);
 hold on
 plot(base_pr(:,2), base_pr(:,1), 'r-')
 hold on
