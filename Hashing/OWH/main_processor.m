@@ -163,7 +163,8 @@ if strcmp(svm_type, 'ranksvm')
     C_O = ones(1,length(sim_data{1,1})) * 0.1;
    % W = ranksvm(code_dist_vecs, O, C', w_0', svm_opt); 
 
-    W = ranksvm_with_sim(code_dist_vecs, O, S, C_O', C_S', w_0', svm_opt);
+    %W = ranksvm_with_sim(code_dist_vecs, O, S, C_O', C_S', w_0', svm_opt);
+    W = weightLearnerRank(w_0', code_dist_vecs, ordered_idx);
     
 elseif strcmp(svm_type, 'normal')
     
@@ -239,7 +240,7 @@ validConstraintNum(traincodes, w1, sim_data)
 validConstraintNum(traincodes, W, sim_data)
 
 % every two columns represent one test sample
-numtest = 30;
+numtest = 1;
 base_pr = zeros(size(traincodes, 1), 2*numtest);
 learn_pr = zeros(size(traincodes, 1), 2*numtest);
 

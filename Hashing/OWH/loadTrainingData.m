@@ -7,7 +7,9 @@ datasets = cell(4,2);
 datasets{1,1} = 'dummy'; datasets{1,2} = '';
 datasets{2,1} = 'CIFAR10';  %datasets{2,2} = 'H:\Datasets\Recognition\CIFAR10\';
 datasets{2,2} = 'F:\Datasets\Recognition\CIFAR-10\cifar-10-binary\';
-datasets{3,1} = 'minst'; datasets{3,2} = 'F:\Datasets\Recognition\MINST\Processed\';
+datasets{3,1} = 'minst'; 
+%datasets{3,2} = 'F:\Datasets\Recognition\MINST\Processed\';
+datasets{3,2} = 'D:\Box Files\My Box Files\Experiments\MINST\Processed\';
 
 
 if dataset_id == 1
