@@ -54,7 +54,7 @@ codetypes{1,1} = 'SH'; codetypes{1,2} = '../SH/';
 codetypes{2,1} = 'ITQ'; codetypes{2,2} = '../ITQ/';
 codetypes{3,1} = 'LSH'; codetypes{3,2} = '';
 
-code_type = 1;
+code_type = 3;
 traincodes = [];
 testcodes = [];
 
@@ -240,7 +240,7 @@ validConstraintNum(traincodes, w1, sim_data)
 validConstraintNum(traincodes, W, sim_data)
 
 % every two columns represent one test sample
-numtest = 1;
+numtest = 10;
 base_pr = zeros(size(traincodes, 1), 2*numtest);
 learn_pr = zeros(size(traincodes, 1), 2*numtest);
 
