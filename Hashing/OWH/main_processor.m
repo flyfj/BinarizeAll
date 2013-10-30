@@ -1,10 +1,15 @@
 
+
+function [base_pr, learn_pr] = main_processor(use_data, code_type)
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % main entrance for owh
 % 1. load data
 % 2. compute hash code using different methods
 % 3. learn weights
 % 4. evaluation
+
+disp(['Dataset: ' num2str(use_data) ' Code: ' num2str(code_type)]);
 
 %% init
 addpath(genpath('svm'));
@@ -15,15 +20,18 @@ disp('Loading raw feature data...');
 
 % regular ml data format, treat as two groups, one for the same class, the
 % other for all different ones
-use_data = 3;
+%use_data = 3;
 
 [traindata, trainlabels] = loadTrainingData(use_data);
 % make label starts from 1
 trainlabels = trainlabels + 1;
 
+
 % use subset as test data
 testdata = [];
 testlabels = [];
+
+testids = [];
 
 % separate into groups with same labels
 unique_label_num = length( unique(trainlabels) );
@@ -32,6 +40,7 @@ for i=1:unique_label_num
     cls_ids = find(trainlabels == i);
     train_ids = cls_ids(1:int32(length(cls_ids)*0.8), 1);
     test_ids = cls_ids(int32(length(cls_ids)*0.8)+1:end, 1);
+    testids = [testids; test_ids];
     % 8-2
     train_groups{i,1} = cls_ids;
     testdata = [testdata; traindata(test_ids, :)];
@@ -53,13 +62,17 @@ codetypes = cell(4,2);
 codetypes{1,1} = 'SH'; codetypes{1,2} = '../SH/';
 codetypes{2,1} = 'ITQ'; codetypes{2,2} = '../ITQ/';
 codetypes{3,1} = 'LSH'; codetypes{3,2} = '';
+codetypes{4,1} = 'KSH'; codetypes{4,2} = '../KSH';
 
-code_type = 3;
+%code_type = 3;
 traincodes = [];
 testcodes = [];
 
+loadKSH = 1;
+
 % add code path
 addpath(genpath(codetypes{code_type, 2}));
+
 if code_type == 1
     % learn sh codes
     sh_params.nbits = code_params.nbits;
@@ -82,6 +95,27 @@ if code_type == 1
     
 elseif code_type == 2
     % learn itq
+    XX = traindata;
+    sampleMean = mean(XX,1);
+    XX = (XX - repmat(sampleMean,size(XX,1),1));
+    % PCA
+    [pc, l] = eigs(cov(XX(:,:)),code_params.nbits);
+    XX = XX * pc;
+    % ITQ
+    [traincodes, R] = ITQ(XX(:,:),50);
+    XX = XX*R;
+    traincodes = zeros(size(XX));
+    traincodes(XX>=0) = 1;
+    traincodes = compactbit(traincodes>0);
+    traincodes_str = [];
+    for i=1:size(traincodes, 2)
+        traincodes_str = [traincodes_str dec2bin(traincodes(:,i), 8)];
+    end
+    traincodes = traincodes_str - '0';
+    
+    % testcodes; take from traincodes
+    testcodes = traincodes(testids, :);
+    
 elseif code_type == 3
    
     % lsh: random hash function from normal distribution
@@ -94,6 +128,105 @@ elseif code_type == 3
     testcodes = (lsh_params.funcs * testdata')';
     testcodes( testcodes>0 ) = 1;
     testcodes( testcodes<0 ) = 0;
+    
+elseif code_type == 4
+    
+    if(loadKSH == 1)
+        if(use_data == 2)
+            load cifar_ksh_32_300_1000;
+        elseif(use_data == 3)
+            load mnist_ksh_32_300_1000;
+        end
+    else
+    
+        global m;
+        m = 300;    % number of anchors
+        global r;
+        r = code_params.nbits;     % number of hash bits
+        % sample anchors
+        anchor_idx = randsample(1:size(traindata,1), m);
+        anchor = traindata(anchor_idx, :);
+        KTrain = sqdist(traindata',anchor');    % compute distance between each sample and anchor
+        global sigma;
+        sigma = mean(mean(KTrain,2));   % sigma
+        KTrain = exp(-KTrain/(2*sigma));    % normalize?
+        global mvec;
+        mvec = mean(KTrain);    % mean
+        KTrain = KTrain-repmat(mvec, size(traindata,1), 1);   % kernel value computation
+
+        % pairwise label matrix
+        % create a diagonal matrix with 1 and others with -1?
+        % select subset as training sample
+        global trn; % number of labeled training samples
+        trn = 1000;
+        label_index = randsample(1:size(traindata,1), trn);
+        trngnd = trainlabels(label_index');    % 
+        temp = repmat(trngnd,1,trn)-repmat(trngnd',trn,1);
+        S0 = -ones(trn,trn);
+        tep = temp == 0;
+        S0(tep) = 1;
+        clear temp;
+        clear tep;
+        S = r*S0;
+
+        % projection optimization
+        KK = KTrain(label_index',:);
+        RM = KK'*KK; 
+        A1 = zeros(m,r);
+        flag = zeros(1,r);
+        for rr = 1:r
+            [rr]
+            if rr > 1
+                S = S-y*y';
+            end
+
+            LM = KK'*S*KK;
+            [U,V] = eig(LM,RM);
+            eigenvalue = diag(V)';
+            [eigenvalue,order] = sort(eigenvalue,'descend');
+            A1(:,rr) = U(:,order(1));
+            tep = A1(:,rr)'*RM*A1(:,rr);
+            A1(:,rr) = sqrt(trn/tep)*A1(:,rr);
+            clear U;    
+            clear V;
+            clear eigenvalue; 
+            clear order; 
+            clear tep;  
+
+            [get_vec, cost] = OptProjectionFast(KK, S, A1(:,rr), 500);
+            y = double(KK*A1(:,rr)>0);
+            ind = find(y <= 0);
+            y(ind) = -1;
+            clear ind;
+            y1 = double(KK*get_vec>0);
+            ind = find(y1 <= 0);
+            y1(ind) = -1;
+            clear ind;
+            if y1'*S*y1 > y'*S*y
+                flag(rr) = 1;
+                A1(:,rr) = get_vec;
+                y = y1;
+            end
+        end
+
+        % encoding
+        traincodes = single(A1'*KTrain' > 0)';
+
+        % process testdata
+        KTest = sqdist(testdata',anchor');
+        KTest = exp(-KTest/(2*sigma));
+        KTest = KTest-repmat(mvec, size(testdata,1), 1);
+        testcodes = single(A1'*KTest' > 0)';
+
+        % save
+        if(use_data == 2)
+            save cifar_ksh_32_300_1000 traincodes testcodes A1 anchor mvec sigma
+        elseif(use_data == 3)
+            save mnist_ksh_32_300_1000 traincodes testcodes A1 anchor mvec sigma
+        end
+        
+    end
+    
 end
 
 
@@ -165,7 +298,7 @@ if strcmp(svm_type, 'ranksvm')
 
     %W = ranksvm_with_sim(code_dist_vecs, O, S, C_O', C_S', w_0', svm_opt);
     W = weightLearnerRank(w_0', code_dist_vecs, ordered_idx);
-    
+   
 elseif strcmp(svm_type, 'normal')
     
     % use hamming distance vector as sample
@@ -232,6 +365,7 @@ disp('Weights learned.');
 
 %% evaluation
 
+showres = 0;
 % use weights and no weights to compute ranking list for one sample first
 % use base code: dist and cls_id
 w1 = ones(code_params.nbits, 1);
@@ -239,33 +373,76 @@ w1 = ones(code_params.nbits, 1);
 validConstraintNum(traincodes, w1, sim_data)
 validConstraintNum(traincodes, W, sim_data)
 
+imgsz = 32;
+
 % every two columns represent one test sample
-numtest = 10;
-base_pr = zeros(size(traincodes, 1), 2*numtest);
-learn_pr = zeros(size(traincodes, 1), 2*numtest);
+numtest = 30;
+%pickids = testlabels(1:numtest, :);
+pickids = randsample(1:size(testcodes,1), numtest);
+step = 200;
+base_pr = zeros(size(traincodes, 1)/step, 2*numtest);
+learn_pr = zeros(size(traincodes, 1)/step, 2*numtest);
 
 for i=1:numtest
     % process current code
-    testlabel = testlabels(i, :);
+    testlabel = testlabels(i, :);%pickids(1,i)
     testsamp = testcodes(i,:);
+    
+    if(showres==1)
+        % show test sample
+        figure('Name', 'query')
+        img = testdata(i, :)';
+        img = reshape(img, imgsz, imgsz);
+        imshow(img)
+        hold on
+        pause
+    end
+    
     base_dists = weightedHam(testsamp, traincodes, w1');
     [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
-
+    
+    if(showres==1)
+        % show ranked results in images, top 5
+        figure('Name', 'Base Results')
+        for k=1:5
+            res = traindata(base_sorted_idx(1,k), :);
+            res = reshape(res, imgsz, imgsz);
+            subplot(1,5,k)
+            imshow(res)
+            hold on
+        end
+    end
+    
     % use learned weights
     learn_dists = weightedHam(testsamp, traincodes, W');
     [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
 
+    if(showres==1)
+        figure('Name', 'Our Results')
+        for k=1:5
+            res = traindata(learn_sorted_idx(1,k), :);
+            res = reshape(res, imgsz, imgsz);
+            subplot(1,5,k)
+            imshow(res)
+            hold on
+        end
+        pause
+        close all
+    end
+    
     % compute pr values
-    for j=1:size(traincodes, 1)
+    cnt = 1;
+    for j=1:step:size(traincodes, 1)
         % intersection value
         base_inter_num = size( intersect( base_sorted_idx(1, 1:j), train_groups{testlabel, 1} ), 1 );
         learn_inter_num = size( intersect( learn_sorted_idx(1, 1:j), train_groups{testlabel, 1} ), 1 );
         % precision
-        base_pr(j,2*i-1) = double(base_inter_num) / j;
-        learn_pr(j,2*i-1) = double(learn_inter_num) / j;
+        base_pr(cnt,2*i-1) = double(base_inter_num) / j;
+        learn_pr(cnt,2*i-1) = double(learn_inter_num) / j;
         % recall
-        base_pr(j,2*i) = double(base_inter_num) / size(train_groups{testlabel, 1}, 1);
-        learn_pr(j,2*i) = double(learn_inter_num) / size(train_groups{testlabel, 1}, 1);
+        base_pr(cnt,2*i) = double(base_inter_num) / size(train_groups{testlabel, 1}, 1);
+        learn_pr(cnt,2*i) = double(learn_inter_num) / size(train_groups{testlabel, 1}, 1);
+        cnt = cnt + 1;
     end
     
 end
@@ -276,17 +453,8 @@ r_ids = 2:2:size(base_pr,2);
 base_pr = [mean(base_pr(:,p_ids), 2), mean(base_pr(:,r_ids), 2)];
 learn_pr = [mean(learn_pr(:,p_ids), 2), mean(learn_pr(:,r_ids), 2)];
 
-% draw precision curve
-xlabel('Recall')
-ylabel('Precision')
-hold on
-axis([0,1,0,1]);
-hold on
-plot(base_pr(:,2), base_pr(:,1), 'r-')
-hold on
-plot(learn_pr(:,2), learn_pr(:,1), 'b-')
-hold on
-legend('base', 'Learned')
-pause
+end
+
+
 
 
