@@ -81,6 +81,7 @@ elseif strcmp(type, 'triplet')
         %sim_triplets{2,1} = zeros(triplet_num, 6);
         
         % cfiar: ok 7,9,2,1
+        % minst: 2, 
         for i=1:triplet_num
             % select a sample; now, force to learn for class 1
             samp_cls_id = 1; %int32( randsample(unique_label_num, 1) );

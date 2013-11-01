@@ -36,6 +36,7 @@ testids = [];
 % separate into groups with same labels
 unique_label_num = length( unique(trainlabels) );
 train_groups = cell(unique_label_num, 1);
+test_groups = cell(unique_label_num, 1);
 for i=1:unique_label_num
     cls_ids = find(trainlabels == i);
     train_ids = cls_ids(1:int32(length(cls_ids)*0.8), 1);
@@ -43,6 +44,7 @@ for i=1:unique_label_num
     testids = [testids; test_ids];
     % 8-2
     train_groups{i,1} = cls_ids;
+    test_groups{i,1} = test_ids;
     testdata = [testdata; traindata(test_ids, :)];
     testlabels = [testlabels; trainlabels(test_ids, :)];
 end
@@ -220,9 +222,9 @@ elseif code_type == 4
 
         % save
         if(use_data == 2)
-            save cifar_ksh_32_300_1000 traincodes testcodes A1 anchor mvec sigma
+            save cifar_ksh_48_300_1000 traincodes testcodes A1 anchor mvec sigma
         elseif(use_data == 3)
-            save mnist_ksh_32_300_1000 traincodes testcodes A1 anchor mvec sigma
+            save mnist_ksh_48_300_1000 traincodes testcodes A1 anchor mvec sigma
         end
         
     end
@@ -294,27 +296,43 @@ if strcmp(svm_type, 'ranksvm')
     % use rank-svm first
     C_S = ones(1,length(sim_data{1,1})) * 0.1;
     C_O = ones(1,length(sim_data{1,1})) * 0.1;
-   % W = ranksvm(code_dist_vecs, O, C', w_0', svm_opt); 
+    %W = ranksvm(code_dist_vecs, O, C_O', w_0', svm_opt); 
 
-    %W = ranksvm_with_sim(code_dist_vecs, O, S, C_O', C_S', w_0', svm_opt);
-    W = weightLearnerRank(w_0', code_dist_vecs, ordered_idx);
+    % online mode
+    
+    W = w_0';
+%     step = 1000;
+%     for id=1:step:size(O,1)-step
+%         tic
+%         curO = O(id:id+step,:);
+%         curS = S(id:id+step,:);
+%         W = ranksvm_with_sim(code_dist_vecs, curO, curS, C_O(1,id:id+step)', C_S(1,id:id+step)', W, svm_opt);
+%         toc
+%         %disp(['Iter: ' num2str(id)]);
+%     end
+    
+    W = ranksvm_with_sim(code_dist_vecs, O, S, C_O', C_S', w_0', svm_opt);
+    %W = weightLearnerRank(w_0', code_dist_vecs, ordered_idx);
    
 elseif strcmp(svm_type, 'normal')
     
     % use hamming distance vector as sample
     global X;
-    X = zeros(length(sim_data{1,1})+length(sim_data{2,1}), code_params.nbits);
+    X = zeros(length(sim_data{1,1})*4, code_params.nbits);
     newlabels = zeros(size(X,1), 1);
     for i=1:length(sim_data{1,1})
-        X(i,:) = abs(traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,4), :));
-        newlabels(i,1) = 1;
-    end
-    for i=1:length(sim_data{2,1})
-        X(i+length(sim_data{1,1}),:) = abs(traincodes(sim_data{2,1}(i,2), :) - traincodes(sim_data{2,1}(i,4), :));
-        newlabels(i+length(sim_data{1,1}), 1) = -1;
+        X(i*4-3,:) = abs(traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,4), :));
+        newlabels(i*4-3,1) = 1;
+        X(i*4-2,:) = abs(traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,8), :));
+        newlabels(i*4-2,1) = -1;
+        X(i*4-1,:) = abs(traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,6), :));
+        newlabels(i*4-1,1) = 1;
+        X(i*4,:) = abs(traincodes(sim_data{1,1}(i,4), :) - traincodes(sim_data{1,1}(i,8), :));
+        newlabels(i*4,1) = -1;
     end
     
-    svmmodel = svmtrain(double(newlabels), double(X));
+    trainsz = int32(size(X,1)*0.8);
+    svmmodel = svmtrain(double(newlabels(1:trainsz,:)), double(X(1:trainsz,:)));
     
     %svmoption = statset('Display', 'iter');
     %svmmodel = svmtrain(X, newlabels, 'kernel_function', 'quadratic', 'showplot', 0, 'options', svmoption);
@@ -323,7 +341,8 @@ elseif strcmp(svm_type, 'normal')
     % test classification performance
     
     %pred_labels = svmclassify(svmmodel, X);
-    [pred_labels, accuracy, scores] = svmpredict(newlabels, X, svmmodel);
+    [pred_labels, accuracy, scores] = svmpredict(newlabels(trainsz+1:end,:), X(trainsz+1:end,:), svmmodel);
+    
     
     % test a query
     testid = 44;
@@ -378,15 +397,15 @@ imgsz = 32;
 % every two columns represent one test sample
 numtest = 30;
 %pickids = testlabels(1:numtest, :);
-pickids = randsample(1:size(testcodes,1), numtest);
-step = 200;
+pickids = randsample(test_groups{1,1}, numtest);
+step = 500;
 base_pr = zeros(size(traincodes, 1)/step, 2*numtest);
 learn_pr = zeros(size(traincodes, 1)/step, 2*numtest);
 
 for i=1:numtest
     % process current code
-    testlabel = testlabels(i, :);%pickids(1,i)
-    testsamp = testcodes(i,:);
+    testlabel = trainlabels(pickids(i), :);%pickids(1,i)
+    testsamp = traincodes(pickids(i),:);
     
     if(showres==1)
         % show test sample
