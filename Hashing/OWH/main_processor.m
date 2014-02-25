@@ -7,6 +7,8 @@
 % 4. evaluation
 
 %% init
+clear
+
 addpath(genpath('svm'));
 
 use_data = 1;
@@ -21,7 +23,8 @@ disp('Loading binary codes...');
 % regular ml data format, treat as two groups, one for the same class, the
 % other for all different ones
 %use_data = 3;
-codefile = 'data/mnist_codes/mnist_lsh_16b.mat';
+code_params.nbits = 128;
+codefile = 'data/mnist_codes/mnist_itq_128b.mat';
 
 load(codefile);
 % make label starts from 1
@@ -41,14 +44,16 @@ for i=1:length(labels)
 end
 
 
-disp('Loaded raw feature data...');
+disp('Loaded binary code.');
 
 
 %% generate similarity pairs
 
 disp('Generating training pairs...');
 
-sim_data = genSimData(traingroups, 'triplet');
+if ~exist('sim_data', 'var')
+    sim_data = genSimData(traingroups, 'pair');
+end
 
 disp('Generating training pairs done.');
 
@@ -58,7 +63,7 @@ disp('Learning weights...');
 
 % now use relative attribute code
 
-svm_type = 'ranksvm';
+svm_type = 'normal';
 
 % construct parameters for svm code
 svm_opt.lin_cg = 0; % not use conjugate gradient
@@ -128,21 +133,26 @@ elseif strcmp(svm_type, 'normal')
     
     % use hamming distance vector as sample
     global X;
-    X = zeros(length(sim_data{1,1})*4, code_params.nbits);
+    sampnum = size(sim_data{1,1}, 1);
+    X = zeros(sampnum, code_params.nbits);
     newlabels = zeros(size(X,1), 1);
-    for i=1:length(sim_data{1,1})
-        X(i*4-3,:) = abs(traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,4), :));
-        newlabels(i*4-3,1) = 1;
-        X(i*4-2,:) = abs(traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,8), :));
-        newlabels(i*4-2,1) = -1;
-        X(i*4-1,:) = abs(traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,6), :));
-        newlabels(i*4-1,1) = 1;
-        X(i*4,:) = abs(traincodes(sim_data{1,1}(i,4), :) - traincodes(sim_data{1,1}(i,8), :));
-        newlabels(i*4,1) = -1;
+    
+    cnt = 1;
+    for i=1:sampnum
+        % positive samples
+        X(cnt,:) = abs(traincodes(sim_data{1}(i,2), :) - traincodes(sim_data{1}(i,4), :));
+        newlabels(cnt,1) = 1;
+        cnt = cnt + 1;
+        % negative sample
+        X(cnt,:) = abs(traincodes(sim_data{2}(i,2), :) - traincodes(sim_data{2}(i,4), :));
+        newlabels(cnt,1) = -1;
+        cnt = cnt + 1;
     end
     
-    trainsz = int32(size(X,1)*0.8);
-    svmmodel = svmtrain(double(newlabels(1:trainsz,:)), double(X(1:trainsz,:)));
+    X = X*2 - 1;
+    
+    trainsz = int32(size(X,1)*0.9);
+    svmmodel = svmtrain( double(newlabels(1:trainsz,:)), double(X(1:trainsz,:)), '-t 2');
     
     %svmoption = statset('Display', 'iter');
     %svmmodel = svmtrain(X, newlabels, 'kernel_function', 'quadratic', 'showplot', 0, 'options', svmoption);
@@ -159,7 +169,7 @@ elseif strcmp(svm_type, 'normal')
     test_dist_vecs = repmat(traincodes(testid,:), size(traincodes, 1), 1);
     test_dist_vecs = abs(test_dist_vecs - traincodes);
     truelabels = -ones(size(traincodes,1), 1);
-    truelabels(train_groups{trainlabels(testid,1), 1}) = 1;
+    truelabels(traingroups{trainlabels(testid,1), 1}) = 1;
     [pred_labels, accuracy, scores] = svmpredict(truelabels, test_dist_vecs, svmmodel);
 %     corr_num = intersect( find(pred_labels==1), train_groups{trainlabel(testid,1), 1} );
 %     corr_num = length(corr_num) / length(train_groups{trainlabel(testid,1), 1});
@@ -169,11 +179,11 @@ elseif strcmp(svm_type, 'normal')
     score_inters = zeros(2, size(traincodes, 1));
     for i=1:size(traincodes, 1)
         % intersection value
-        inter_num = length( intersect( score_sorted_idx(1:i, 1), train_groups{trainlabels(testid, 1), 1} ) );
+        inter_num = length( intersect( score_sorted_idx(1:i, 1), traingroups{trainlabels(testid, 1), 1} ) );
         % precision
         score_inters(1,i) = double(inter_num) / i;
         % recall
-        score_inters(2,i) = double(inter_num) / size(train_groups{trainlabels(testid, 1), 1}, 1);
+        score_inters(2,i) = double(inter_num) / size(traingroups{trainlabels(testid, 1), 1}, 1);
     end
 
     % draw precision curve

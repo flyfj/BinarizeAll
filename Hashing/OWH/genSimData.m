@@ -18,7 +18,7 @@ if strcmp(type, 'pair')
     sim_data = cell(2,1);
     
     % sample certain number
-    sim_pair_num = 4000;
+    sim_pair_num = 8000;
     sim_data{1,1} = zeros(sim_pair_num, 4);
     
     % similar pairs within each class
@@ -37,24 +37,26 @@ if strcmp(type, 'pair')
         end
         
         sim_data{1,1}(i,:) = [samp_cls_id samp_obj_id sim_cls_id sim_obj_id];
-        
     end
+
+    % get all possible similar pairs
 %     for i=1:size(cls_samp_ids,1)
 %         for j=1:length(cls_samp_ids{i,1})
 %             for k=j:length(cls_samp_ids{i,1})
 %                 
-%                 sim_data{1,1} = [sim_data{1,1}; i cls_samp_ids{i,1}(1,j) i cls_samp_ids{1,k}];
+%                 sim_data{1,1} = [sim_data{1,1}; i cls_samp_ids{i}(j) i cls_samp_ids{i}(k)];
 %             end
 %         end
 %     end
     
-    dis_pair_num = 4000;
+    % balanced samples
+    dis_pair_num = size(sim_data{1,1}, 1);
     sim_data{2,1} = zeros(dis_pair_num, 4);
     
     % dissimilar pairs in different classes
     for i=1:dis_pair_num
         samp_cls_id = int32( randsample(cls_num, 1) );
-        samp_obj_id = int32( randsample(cls_samp_ids{samp_cls_id, 1}, 1) );
+        samp_obj_id = int32( randsample(cls_samp_ids{samp_cls_id}, 1) );
         % select dissimilar sample from different classes
         dis_cls_id = 0;
         while 1
@@ -64,7 +66,7 @@ if strcmp(type, 'pair')
                 break;
             end
         end
-        dis_obj_id = int32( randsample(cls_samp_ids{dis_cls_id, 1}, 1) );
+        dis_obj_id = int32( randsample(cls_samp_ids{dis_cls_id}, 1) );
         
         sim_data{2,1}(i,:) = [samp_cls_id samp_obj_id dis_cls_id dis_obj_id];
     end

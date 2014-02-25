@@ -2,8 +2,8 @@
 
 %% compute binary codes for each dataset
 
-use_data = 2;
-dataname = 'cifar';
+use_data = 3;
+dataname = 'mnist';
 
 % load raw features
 [traindata, trainlabels] = loadTrainingData(use_data);
@@ -16,15 +16,16 @@ dataname = 'cifar';
 disp('Computing binary code for features...');
 
 % code name | code path
-codetypes = cell(5,2);
+codetypes = cell(6,2);
 codetypes{1,1} = 'sh'; codetypes{1,2} = '../SH/';
 codetypes{2,1} = 'itq'; codetypes{2,2} = '../ITQ/';
 codetypes{3,1} = 'lsh'; codetypes{3,2} = '../unsupervised_hash_code/';
 codetypes{4,1} = 'mdsh'; codetypes{4,2} = '../unsupervised_hash_code/';
-codetypes{5,1} = 'ksh'; codetypes{5,2} = '../KSH';
+codetypes{5,1} = 'iso'; codetypes{5,2} = '../unsupervised_hash_code/';
+codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
-codes = [1, 2, 3, 4];
+codes = [5];
 bits = [16, 32, 48, 96, 128];
 
 for id=1:length(codes)
@@ -121,6 +122,25 @@ for id=1:length(codes)
             triancodes = single(traincodes);
 
         elseif codeid == 5
+            
+            % iso hashing
+            meanv = mean(traindata, 1);
+            traindata = traindata - repmat(meanv,n,1);
+            cov = traindata' * traindata;
+            [U,V] = eig(cov);
+            eigenvalue = diag(V)';
+            [eigenvalue,order] = sort(eigenvalue, 'descend');
+            W = U(:,order(1:code_params.nbits));
+            eigenvalue = eigenvalue(1:code_params.nbits);
+
+            R = GradientFlow(diag(eigenvalue));
+            W = W*R;
+            meanv = meanv*W;
+            traincodes = traindata*W;
+            traincodes = (traincodes>0);
+            traincodes = single(traincodes);
+            
+        elseif codeid == 6
 
             % ksh
             if(loadKSH == 1)
