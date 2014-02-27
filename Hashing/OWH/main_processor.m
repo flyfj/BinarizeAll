@@ -23,8 +23,8 @@ disp('Loading binary codes...');
 % regular ml data format, treat as two groups, one for the same class, the
 % other for all different ones
 %use_data = 3;
-code_params.nbits = 128;
-codefile = 'data/mnist_codes/mnist_itq_128b.mat';
+code_params.nbits = 96;
+codefile = 'data/mnist_codes/mnist_itq_96b.mat';
 
 load(codefile);
 % make label starts from 1
@@ -52,7 +52,7 @@ disp('Loaded binary code.');
 disp('Generating training pairs...');
 
 if ~exist('sim_data', 'var')
-    sim_data = genSimData(traingroups, 'pair');
+    sim_data = genSimData(traingroups, 'triplet');
 end
 
 disp('Generating training pairs done.');
@@ -63,7 +63,7 @@ disp('Learning weights...');
 
 % now use relative attribute code
 
-svm_type = 'normal';
+svm_type = 'nosvm';
 
 % construct parameters for svm code
 svm_opt.lin_cg = 0; % not use conjugate gradient
@@ -78,19 +78,26 @@ if strcmp(svm_type, 'ranksvm')
     % to cope with svm code, each pair will be an invididual code sample
 
     % for triplet use
-    triplet_num = length(sim_data{1,1});
+    triplet_num = size(sim_data, 1);
     code_dist_vecs = zeros(3*triplet_num, code_params.nbits);
     ordered_idx = zeros(triplet_num, 2);
     sim_idx = zeros(triplet_num, 2);
+    cnt = 1;
     for i=1:triplet_num
         % compute similar pair distance
-        code_dist_vecs(i*3-2,:) = abs( traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,4), :) );
-        code_dist_vecs(i*3-1,:) = abs( traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,6), :) );
-        code_dist_vecs(i*3, :) = abs( traincodes(sim_data{1,1}(i,2), :) - traincodes(sim_data{1,1}(i,8), :) );
-        % add new sample ids to triplets: sim_code_dist, dis_code_dist
-        sim_idx(i,:) = [i*3-2 i*3-1];
-        ordered_idx(i,:) = [i*3-2 i*3];
+        code_dist_vecs(cnt,:) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,4), :) );
+        cnt = cnt + 1;
+        code_dist_vecs(cnt,:) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,6), :) );
+        sim_idx(i,:) = [cnt cnt-1];
+        cnt = cnt + 1;
+        code_dist_vecs(cnt, :) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,8), :) );
+        ordered_idx(i,:) = [cnt cnt-2];
+        cnt = cnt + 1;
+        
     end
+    
+    % convert to -1 / 1
+    code_dist_vecs = double(2*code_dist_vecs - 1);
     
     % construct ordering and similarity matrix: pair_num X sample_num
     O = zeros(triplet_num, size(code_dist_vecs, 1));
@@ -104,13 +111,13 @@ if strcmp(svm_type, 'ranksvm')
 
     for i=1:length(ordered_idx)
 
-        O(i, ordered_idx(i,1)) = -1;
-        O(i, ordered_idx(i,2)) = 1;
+        O(i, ordered_idx(i,1)) = 1;
+        O(i, ordered_idx(i,2)) = -1;
     end
 
     % use rank-svm first
-    C_S = ones(1,length(sim_data{1,1})) * 0.1;
-    C_O = ones(1,length(sim_data{1,1})) * 0.1;
+    C_S = ones(1, triplet_num) * 0.1;
+    C_O = ones(1, triplet_num) * 0.1;
     %W = ranksvm(code_dist_vecs, O, C_O', w_0', svm_opt); 
 
     % online mode
@@ -166,10 +173,12 @@ elseif strcmp(svm_type, 'normal')
     
     % test a query
     testid = 44;
+    gtlabels = [traingroups{trainlabels(testid, 1), 1}; testgroups{trainlabels(testid,1), 1}];
     test_dist_vecs = repmat(traincodes(testid,:), size(traincodes, 1), 1);
-    test_dist_vecs = abs(test_dist_vecs - traincodes);
-    truelabels = -ones(size(traincodes,1), 1);
-    truelabels(traingroups{trainlabels(testid,1), 1}) = 1;
+    test_dist_vecs = abs(test_dist_vecs - traincodes) * 2 - 1;
+    test_dist_vecs = double(test_dist_vecs);
+    truelabels = -ones(length(trainlabels), 1);
+    truelabels(gtlabels) = 1;
     [pred_labels, accuracy, scores] = svmpredict(truelabels, test_dist_vecs, svmmodel);
 %     corr_num = intersect( find(pred_labels==1), train_groups{trainlabel(testid,1), 1} );
 %     corr_num = length(corr_num) / length(train_groups{trainlabel(testid,1), 1});
@@ -179,14 +188,15 @@ elseif strcmp(svm_type, 'normal')
     score_inters = zeros(2, size(traincodes, 1));
     for i=1:size(traincodes, 1)
         % intersection value
-        inter_num = length( intersect( score_sorted_idx(1:i, 1), traingroups{trainlabels(testid, 1), 1} ) );
+        inter_num = length( intersect( score_sorted_idx(1:i, 1), gtlabels ) );
         % precision
         score_inters(1,i) = double(inter_num) / i;
         % recall
-        score_inters(2,i) = double(inter_num) / size(traingroups{trainlabels(testid, 1), 1}, 1);
+        score_inters(2,i) = double(inter_num) / length(gtlabels);
     end
 
     % draw precision curve
+    close all
     xlabel('Recall')
     ylabel('Precision')
     hold on
@@ -209,37 +219,89 @@ showres = 0;
 % use base code: dist and cls_id
 w1 = ones(code_params.nbits, 1);
 
-validConstraintNum(traincodes, w1, sim_data)
-validConstraintNum(traincodes, W, sim_data)
+% validConstraintNum(traincodes, w1, sim_data)
+% validConstraintNum(traincodes, W, sim_data)
 
 imgsz = 32;
 
 % every two columns represent one test sample
-numtest = 30;
-%pickids = testlabels(1:numtest, :);
-pickids = randsample(test_groups{1,1}, numtest);
-step = 500;
-base_pr = zeros(size(traincodes, 1)/step, 2*numtest);
-learn_pr = zeros(size(traincodes, 1)/step, 2*numtest);
 
-for i=1:numtest
+%pickids = testlabels(1:numtest, :);
+% pickids = randsample(testgroups{1,1}, numtest);
+
+ptnum = 50;
+step = int32(size(traincodes, 1) / ptnum);
+
+base_pr = zeros(ptnum, 2);
+learn_pr = zeros(ptnum, 2);
+
+W = w1;
+
+cnt = 0;    % count number of curves / samples
+for i=1:length(testgroups)
+    
     % process current code
-    testlabel = trainlabels(pickids(i), :);%pickids(1,i)
-    testsamp = traincodes(pickids(i),:);
+    testlabel = i;
+    testsamp = traincodes(testgroups{i}, :);
+    cnt = cnt + length(testgroups{i});
     
-%     if(showres==1)
-%         % show test sample
-%         figure('Name', 'query')
-%         img = testdata(i, :)';
-%         img = reshape(img, imgsz, imgsz);
-%         imshow(img)
-%         hold on
-%         pause
-%     end
-    
+    % base distance ranking
     base_dists = weightedHam(testsamp, traincodes, w1');
     [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
     
+    % weighted distance ranking
+    learn_dists = weightedHam(testsamp, traincodes, W');
+    [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
+    
+    dbids = [traingroups{testlabel}; testgroups{testlabel}];
+    
+    % compute pr values
+    for j=1:ptnum    % each top result level
+        topnum = double( (j-1)*step + 1 );
+        for k=1:size(testsamp,1)    % every sample
+            % intersection value
+            base_correct_num = length( intersect( base_sorted_idx(k, 1:topnum), dbids ) );
+            learn_correct_num = length( intersect( learn_sorted_idx(k, 1:topnum), dbids ) );
+            % precision
+            base_pr(j, 1) = base_pr(j,1) + double(base_correct_num) / topnum;
+            learn_pr(j, 1) = learn_pr(j,1) + double(learn_correct_num) / topnum;
+            % recall
+            base_pr(j, 2) = base_pr(j, 2) + double(base_correct_num) / length(dbids);
+            learn_pr(j, 2) = learn_pr(j, 2) + double(learn_correct_num) / length(dbids);
+        end
+    end
+    
+    disp(sprintf('Computed %dth test group.', i));
+    
+end
+
+base_pr = base_pr ./ cnt;
+learn_pr = learn_pr ./ cnt;
+
+% compute average pr
+% p_ids = 1:2:size(base_pr,2);
+% r_ids = 2:2:size(base_pr,2);
+% base_pr = [mean(base_pr(:,p_ids), 2), mean(base_pr(:,r_ids), 2)];
+% learn_pr = [mean(learn_pr(:,p_ids), 2), mean(learn_pr(:,r_ids), 2)];
+
+% draw pr curve
+close all
+xlabel('Recall')
+ylabel('Precision')
+hold on
+axis([0 1 0 1]);
+hold on
+plot(base_pr(:,2), base_pr(:,1), 'b-')
+hold on
+plot(learn_pr(:,2), learn_pr(:,1), 'r-')
+hold on
+legend('Base', 'Weighted')
+pause
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% backup code
+
 %     if(showres==1)
 %         % show ranked results in images, top 5
 %         figure('Name', 'Base Results')
@@ -251,48 +313,6 @@ for i=1:numtest
 %             hold on
 %         end
 %     end
-    
-    % use learned weights
-    learn_dists = weightedHam(testsamp, traincodes, W');
-    [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
-
-%     if(showres==1)
-%         figure('Name', 'Our Results')
-%         for k=1:5
-%             res = traindata(learn_sorted_idx(1,k), :);
-%             res = reshape(res, imgsz, imgsz);
-%             subplot(1,5,k)
-%             imshow(res)
-%             hold on
-%         end
-%         pause
-%         close all
-%     end
-    
-    % compute pr values
-    cnt = 1;
-    for j=1:step:size(traincodes, 1)
-        % intersection value
-        base_inter_num = size( intersect( base_sorted_idx(1, 1:j), train_groups{testlabel, 1} ), 1 );
-        learn_inter_num = size( intersect( learn_sorted_idx(1, 1:j), train_groups{testlabel, 1} ), 1 );
-        % precision
-        base_pr(cnt,2*i-1) = double(base_inter_num) / j;
-        learn_pr(cnt,2*i-1) = double(learn_inter_num) / j;
-        % recall
-        base_pr(cnt,2*i) = double(base_inter_num) / size(train_groups{testlabel, 1}, 1);
-        learn_pr(cnt,2*i) = double(learn_inter_num) / size(train_groups{testlabel, 1}, 1);
-        cnt = cnt + 1;
-    end
-    
-end
-
-% compute average pr
-p_ids = 1:2:size(base_pr,2);
-r_ids = 2:2:size(base_pr,2);
-base_pr = [mean(base_pr(:,p_ids), 2), mean(base_pr(:,r_ids), 2)];
-learn_pr = [mean(learn_pr(:,p_ids), 2), mean(learn_pr(:,r_ids), 2)];
-
-
 
 
 

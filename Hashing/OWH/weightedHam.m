@@ -1,14 +1,17 @@
 function distMat = weightedHam( code1, code2, weights )
 %WEIGHTEDHAM Summary of this function goes here
-%   Detailed explanation goes here
+%   weights: row vector
+
+% num1 = size(code1, 1);
+num2 = size(code2, 1);
 
 distMat = zeros(size(code1, 1), size(code2, 1));
 
 for i=1:size(code1, 1)
-    for j=1:size(code2, 1)
-        
-        distMat(i,j) = ( double( code1(i,:)-code2(j,:) ) ).^2 * weights';
-        
-    end
+    
+    codediff = abs(repmat(code1(i,:), num2, 1) - code2);
+    %codediff = double(2*codediff - 1);
+    distMat(i,:) = weights * codediff';
+    
 end
 

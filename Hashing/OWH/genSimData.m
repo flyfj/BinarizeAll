@@ -71,22 +71,21 @@ if strcmp(type, 'pair')
         sim_data{2,1}(i,:) = [samp_cls_id samp_obj_id dis_cls_id dis_obj_id];
     end
     
+    
+    
 elseif strcmp(type, 'triplet')
         
-        % triplet format: (samp_id, sim_id, dis_id)
+        % triplet format: (samp_id, sim_id1, sim_id2, dis_id)
         % randomly select subset from same class as positive, the rest as negative
-        unique_label_num = size(cls_samp_ids, 1);
-        triplet_num = 6000;
-        sim_triplets = cell(1,1);
+        triplet_num = 8000;
         % 1-2: query; 3-4: 1st sim; 5-6: 2nd sim; 7-8: dis
-        sim_triplets{1,1} = zeros(triplet_num, 8);
-        %sim_triplets{2,1} = zeros(triplet_num, 6);
+        sim_data = zeros(triplet_num, 8);
         
         % cfiar: ok 7,9,2,1
         % minst: 2, 
         for i=1:triplet_num
             % select a sample; now, force to learn for class 1
-            samp_cls_id = 1; %int32( randsample(unique_label_num, 1) );
+            samp_cls_id = int32( randsample(cls_num, 1) );
             samp_obj_id = int32( randsample(cls_samp_ids{samp_cls_id}, 1) ); %randsample(801:851, 1);  
             
             % select similar sample from same class
@@ -101,7 +100,6 @@ elseif strcmp(type, 'triplet')
             end
             
             % select another similar sample from same class
-            sim_cls_id2 = samp_cls_id;
             sim_obj_id2 = 0;
             while 1
                 temp_obj_id = int32( randsample(cls_samp_ids{samp_cls_id}, 1) );
@@ -114,7 +112,7 @@ elseif strcmp(type, 'triplet')
             % select dissimilar sample from different classes
             dis_cls_id = 0;
             while 1
-                temp_cls_id = int32( randsample(unique_label_num, 1) );
+                temp_cls_id = int32( randsample(cls_num, 1) );
                 if temp_cls_id ~= samp_cls_id
                     dis_cls_id = temp_cls_id;
                     break;
@@ -123,14 +121,11 @@ elseif strcmp(type, 'triplet')
             dis_obj_id = int32( randsample(cls_samp_ids{dis_cls_id}, 1) );
             
             % add to collection
-            sim_triplets{1,1}(i,:) = [samp_cls_id, samp_obj_id, sim_cls_id, sim_obj_id, sim_cls_id2, sim_obj_id2, dis_cls_id, dis_obj_id];
+            sim_data(i,:) = [samp_cls_id, samp_obj_id, sim_cls_id, sim_obj_id, sim_cls_id, sim_obj_id2, dis_cls_id, dis_obj_id];
             
         end
         
-        sim_data = sim_triplets;
-        
 end
-
 
 
 end
