@@ -23,8 +23,9 @@ disp('Loading binary codes...');
 % regular ml data format, treat as two groups, one for the same class, the
 % other for all different ones
 %use_data = 3;
-code_params.nbits = 96;
-codefile = 'data/mnist_codes/mnist_itq_96b.mat';
+code_params.nbits = 48;
+codefile = 'data/mnist_codes/mnist_itq_48b.mat';
+curvefile = 'res/mnist_itq_48b_pr.mat';
 
 load(codefile);
 % make label starts from 1
@@ -243,7 +244,6 @@ for i=1:length(testgroups)
     % process current code
     testlabel = i;
     testsamp = traincodes(testgroups{i}, :);
-    cnt = cnt + length(testgroups{i});
     
     % base distance ranking
     base_dists = weightedHam(testsamp, traincodes, w1');
@@ -256,9 +256,12 @@ for i=1:length(testgroups)
     dbids = [traingroups{testlabel}; testgroups{testlabel}];
     
     % compute pr values
-    for j=1:ptnum    % each top result level
-        topnum = double( (j-1)*step + 1 );
-        for k=1:size(testsamp,1)    % every sample
+    for k=1:50:size(testsamp,1)    % every sample
+        cnt = cnt + 1;
+        
+        for j=1:ptnum    % each top result level
+            
+            topnum = double( (j-1)*step + 1 );
             % intersection value
             base_correct_num = length( intersect( base_sorted_idx(k, 1:topnum), dbids ) );
             learn_correct_num = length( intersect( learn_sorted_idx(k, 1:topnum), dbids ) );
@@ -297,6 +300,9 @@ plot(learn_pr(:,2), learn_pr(:,1), 'r-')
 hold on
 legend('Base', 'Weighted')
 pause
+
+pr = base_pr;
+save(curvefile, 'pr');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
