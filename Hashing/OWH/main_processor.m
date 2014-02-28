@@ -24,8 +24,8 @@ disp('Loading binary codes...');
 % other for all different ones
 %use_data = 3;
 code_params.nbits = 48;
-codefile = 'data/mnist_codes/mnist_itq_48b.mat';
-curvefile = 'res/mnist_itq_48b_pr.mat';
+codefile = 'data/mnist_codes/mnist_sh_48b.mat';
+curvefile = 'res/mnist_sh_48b_pr.mat';
 
 load(codefile);
 % make label starts from 1
@@ -64,7 +64,7 @@ disp('Learning weights...');
 
 % now use relative attribute code
 
-svm_type = 'nosvm';
+svm_type = 'ranksvm';
 
 % construct parameters for svm code
 svm_opt.lin_cg = 0; % not use conjugate gradient
@@ -236,7 +236,7 @@ step = int32(size(traincodes, 1) / ptnum);
 base_pr = zeros(ptnum, 2);
 learn_pr = zeros(ptnum, 2);
 
-W = w1;
+% W = w1;
 
 cnt = 0;    % count number of curves / samples
 for i=1:length(testgroups)
@@ -246,11 +246,11 @@ for i=1:length(testgroups)
     testsamp = traincodes(testgroups{i}, :);
     
     % base distance ranking
-    base_dists = weightedHam(testsamp, traincodes, w1');
+    base_dists = weightedHam(testsamp, traincodes, w1', 0);
     [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
     
     % weighted distance ranking
-    learn_dists = weightedHam(testsamp, traincodes, W');
+    learn_dists = weightedHam(testsamp, traincodes, W', 1);
     [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
     
     dbids = [traingroups{testlabel}; testgroups{testlabel}];
@@ -302,7 +302,7 @@ legend('Base', 'Weighted')
 pause
 
 pr = base_pr;
-save(curvefile, 'pr');
+% save(curvefile, 'pr');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -81,6 +81,9 @@ elseif strcmp(type, 'triplet')
         % 1-2: query; 3-4: 1st sim; 5-6: 2nd sim; 7-8: dis
         sim_data = zeros(triplet_num, 8);
         
+        % uniformly sample each class
+        
+        
         % cfiar: ok 7,9,2,1
         % minst: 2, 
         for i=1:triplet_num
