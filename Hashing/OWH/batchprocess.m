@@ -17,7 +17,7 @@ for i=1:length(codes)
     for j=1:length(bits)
         
         codename = codenames{codes(i)};
-        [base_pr, learn_pr] = main_processor(dataname, codename, bits(j), 0);
+        [base_pr, learn_pr] = main_processor(dataname, codename, bits(j), 1);
         
         if todraw == 1
             % draw pr curve

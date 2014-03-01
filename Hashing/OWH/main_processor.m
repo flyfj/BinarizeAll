@@ -17,7 +17,7 @@ addpath(genpath('svm'));
 % codename = 'sh';
 % nbits = 32;
 
-disp(['Dataset: ' dataname ' Code: ' codename 'bits: ' nbits]);
+disp(['Dataset: ' dataname '; Code: ' codename '; bits: ' num2str(nbits)]);
 
 disp('Loading binary codes...');
 
@@ -48,9 +48,9 @@ if tolearn == 1
     disp('Generating training pairs...');
 
     if ~exist('sim_data', 'var')
-        sim_data = genSimData(traingroups, 'triplet', 5000);
-        %sim_data2 = genSimData(testgroups, 'triplet', 4000);
-        %sim_data = [sim_data; sim_data2];
+        sim_data = genSimData(traingroups, 'triplet', 3000);
+        sim_data2 = genSimData(testgroups, 'triplet', 3000);
+        sim_data = [sim_data; sim_data2];
     end
 
     disp('Generating training pairs done.');
@@ -240,7 +240,7 @@ step = int32(size(testcodes, 1) / ptnum);
 base_pr = zeros(ptnum, 2);
 learn_pr = zeros(ptnum, 2);
 
-W = w1;
+% W = w1;
 
 cnt = 0;    % count number of curves / samples
 for i=1:length(testgroups)
@@ -249,13 +249,17 @@ for i=1:length(testgroups)
     testlabel = i;
     testsamp = testcodes(randsample(testgroups{i}, 15), :);
     
-    % base distance ranking
-    base_dists = weightedHam(testsamp, testcodes, w1', 0);
-    [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
+    if tolearn == 0
+        % base distance ranking
+        base_dists = weightedHam(testsamp, testcodes, w1', 0);
+        [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
+    end
     
-    % weighted distance ranking
-    learn_dists = weightedHam(testsamp, testcodes, W', 1);
-    [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
+    if tolearn == 1
+        % weighted distance ranking
+        learn_dists = weightedHam(testsamp, testcodes, W', 1);
+        [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
+    end
     
     dbids = testgroups{testlabel};
     
@@ -266,15 +270,22 @@ for i=1:length(testgroups)
         for j=1:ptnum    % each top result level
             
             topnum = double( (j-1)*step + 1 );
-            % intersection value
-            base_correct_num = length( intersect( base_sorted_idx(k, 1:topnum), dbids ) );
-            learn_correct_num = length( intersect( learn_sorted_idx(k, 1:topnum), dbids ) );
-            % precision
-            base_pr(j, 1) = base_pr(j,1) + double(base_correct_num) / topnum;
-            learn_pr(j, 1) = learn_pr(j,1) + double(learn_correct_num) / topnum;
-            % recall
-            base_pr(j, 2) = base_pr(j,2) + double(base_correct_num) / length(dbids);
-            learn_pr(j, 2) = learn_pr(j,2) + double(learn_correct_num) / length(dbids);
+            
+            if tolearn == 0
+                % intersection value
+                base_correct_num = length( intersect( base_sorted_idx(k, 1:topnum), dbids ) );
+                % precision
+                base_pr(j, 1) = base_pr(j,1) + double(base_correct_num) / topnum;
+                % recall
+                base_pr(j, 2) = base_pr(j,2) + double(base_correct_num) / length(dbids);
+            end
+            
+            if tolearn == 1
+                learn_correct_num = length( intersect( learn_sorted_idx(k, 1:topnum), dbids ) );
+                learn_pr(j, 1) = learn_pr(j,1) + double(learn_correct_num) / topnum;
+                learn_pr(j, 2) = learn_pr(j,2) + double(learn_correct_num) / length(dbids);
+            end
+            
         end
     end
     
@@ -285,14 +296,10 @@ end
 base_pr = base_pr ./ cnt;
 learn_pr = learn_pr ./ cnt;
 
-% compute average pr
-% p_ids = 1:2:size(base_pr,2);
-% r_ids = 2:2:size(base_pr,2);
-% base_pr = [mean(base_pr(:,p_ids), 2), mean(base_pr(:,r_ids), 2)];
-% learn_pr = [mean(learn_pr(:,p_ids), 2), mean(learn_pr(:,r_ids), 2)];
-
-pr = base_pr;
-save(basecurvefile, 'pr');
+if tolearn == 0
+    pr = base_pr;
+    save(basecurvefile, 'pr');
+end
 
 if tolearn == 1
     pr = learn_pr;

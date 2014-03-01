@@ -4,8 +4,9 @@ function [ traincodes, trainlabels, testcodes, testlabels ] = loadfacecodes( cod
 
 datadir = 'data/face_codes/';
 
-codefile = 
+traincodefile = sprintf()
 
+testcodefile = sprintf();
 
 end
 
