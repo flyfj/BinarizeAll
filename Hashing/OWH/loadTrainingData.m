@@ -7,10 +7,10 @@ function [ traindata, trainlabels, testdata, testlabels ] = loadTrainingData( da
 datasets = cell(4,2);
 datasets{1,1} = 'dummy'; 
 datasets{1,2} = '';
-datasets{2,1} = 'CIFAR10';
-datasets{2,2} = 'data/cifar_split.mat';  %'E:\Datasets\Recognition\CIFAR-10\cifar-10-binary\';
-datasets{3,1} = 'MNIST';
-datasets{3,2} = 'E:\Datasets\Recognition\MINST\Processed\';
+datasets{2,1} = 'cifar';
+datasets{2,2} = 'C:/Users/jiefeng/Dropbox/hash_data/data/cifar_split.mat';  %'E:\Datasets\Recognition\CIFAR-10\cifar-10-binary\';
+datasets{3,1} = 'mnist';
+datasets{3,2} = 'C:\Users\jiefeng\Dropbox\hash_data\MINST\Processed\';
 datasets{4,1} = 'youtube_face';
 datasets{4,2} = 'E:\Datasets\Recognition\YoutubeFcae\kdd_face_split.mat';
 

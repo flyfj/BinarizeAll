@@ -2,11 +2,12 @@
 %% draw result curves
 
 dataname = 'mnist';
+datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
-codes = [3, 1, 2];
-bits = [16];
+codes = [3];
+bits = [16, 32, 48, 96, 128];
 
 drawBase = 1;
 drawWeighted = 0;
@@ -29,7 +30,7 @@ for i=1:length(codes)
         codename = codenames{codes(i)};
         
         if drawBase == 1
-            prfile = sprintf('res/%s_%s_%db_pr.mat', dataname, codename, bits(j));
+            prfile = sprintf('%s/res/%s_%s_%db_pr.mat', datadir, dataname, codename, bits(j));
             code_pr = load(prfile);
             code_pr = code_pr.pr;
             plot(code_pr(:,2), code_pr(:,1), sprintf('%s-', colors{i}), 'LineWidth', 2)
@@ -37,7 +38,7 @@ for i=1:length(codes)
         end
         
         if drawWeighted == 1
-            prfile = sprintf('res/%s_%s_%db_pr_weighted.mat', dataname, codename, bits(j));
+            prfile = sprintf('%s/res/%s_%s_%db_pr_weighted.mat', datadir, dataname, codename, bits(j));
             code_pr = load(prfile);
             code_pr = code_pr.pr;
             plot(code_pr(:,2), code_pr(:,1), sprintf('%sd-', colors{i}), 'LineWidth', 2)

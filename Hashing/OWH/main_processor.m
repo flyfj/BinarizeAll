@@ -17,14 +17,16 @@ addpath(genpath('svm'));
 % codename = 'sh';
 % nbits = 32;
 
+datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
+
 disp(['Dataset: ' dataname '; Code: ' codename '; bits: ' num2str(nbits)]);
 
 disp('Loading binary codes...');
 
 code_params.nbits = nbits;
-codefile = sprintf('data/%s_codes/%s_%s_%db.mat', dataname, dataname, codename, nbits);
-basecurvefile = sprintf('res/%s_%s_%db_pr.mat', dataname, codename, nbits);
-learncurvefile = sprintf('res/%s_%s_%db_pr_weighted.mat', dataname, codename, nbits);
+codefile = sprintf('%s/data/%s_codes/%s_%s_%db.mat', datadir, dataname, dataname, codename, nbits);
+basecurvefile = sprintf('%s/res/%s_%s_%db_pr.mat', datadir, dataname, codename, nbits);
+learncurvefile = sprintf('%s/res/%s_%s_%db_pr_weighted.mat', datadir, dataname, codename, nbits);
 
 load(codefile);
 

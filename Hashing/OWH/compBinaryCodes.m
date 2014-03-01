@@ -2,8 +2,11 @@
 
 %% compute binary codes for each dataset
 
+datanames = {'dummay', 'cifar', 'mnist'};
 use_data = 3;
-dataname = 'mnist';
+dataname = datanames{use_data};
+
+datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 
 % load raw features
 [traindata, trainlabels, testdata, testlabels] = loadTrainingData(use_data);
@@ -25,8 +28,8 @@ codetypes{5,1} = 'iso'; codetypes{5,2} = '../unsupervised_hash_code/';
 codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
-codes = [2];
-bits = [16];
+codes = [3];
+bits = [16, 32, 48, 96, 128];
 
 for id=1:length(codes)
     
@@ -34,7 +37,7 @@ for id=1:length(codes)
         
         codeid = codes(id);
         code_params.nbits = bits(j);
-        savefile = sprintf('data/%s_%s_%db.mat', dataname, codetypes{codeid,1}, bits(j));
+        savefile = sprintf('%s/data/%s_%s_%db.mat', datadir, dataname, codetypes{codeid,1}, bits(j));
 
         %code_type = 3;
         traincodes = [];
@@ -114,7 +117,8 @@ for id=1:length(codes)
             % mean + bias
             meanv = mean(traincodes,1); 
             traincodes = traincodes-repmat(meanv, n, 1); % substract mean
-            t = max(abs(traincodes),[],1);
+            % not use threshold, keep code balanced
+%             t = max(abs(traincodes),[],1);
 %             thres = rand(1,lsh_params.nbits).*t;   % generate threshold / bias
 %             traincodes = traincodes + repmat(thres, n, 1);
 
@@ -127,7 +131,7 @@ for id=1:length(codes)
             % mean + bias
             meanv = mean(testcodes,1); 
             testcodes = testcodes-repmat(meanv, ntest, 1); % substract mean
-            t = max(abs(testcodes),[],1);
+%             t = max(abs(testcodes),[],1);
 %             thres = rand(1,lsh_params.nbits).*t;   % generate threshold / bias
 %             testcodes = testcodes + repmat(thres, ntest, 1);
             testcodes = testcodes > 0;
