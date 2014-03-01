@@ -16,6 +16,8 @@ batchprocess: batch compute pr for all combinations of code and bit length
 
 weightedHam: weighted hamming distance
 
+getSimData: generate ranks from class label groups
+
 /svm: libsvm and ranksvm_with_sim
 
 

@@ -1,15 +1,15 @@
 
 %% draw result curves
 
-dataname = 'cifar';
+dataname = 'mnist';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
-codes = [1, 2, 3, 5];
-bits = [48];
+codes = [3, 1, 2];
+bits = [16];
 
 drawBase = 1;
-drawWeighted = 1;
+drawWeighted = 0;
 
 colors = {'g', 'r', 'k', 'c', 'm'};
 

@@ -99,6 +99,7 @@ if tolearn == 1
 
         % convert to -1 / 1
         code_dist_vecs = double(2*code_dist_vecs - 1);
+        imagesc(code_dist_vecs)
 
         % construct ordering and similarity matrix: pair_num X sample_num
         O = zeros(triplet_num, size(code_dist_vecs, 1));
@@ -117,8 +118,8 @@ if tolearn == 1
         end
 
         % use rank-svm first
-        C_S = ones(1, triplet_num) * 0.1;
-        C_O = ones(1, triplet_num) * 0.1;
+        C_S = ones(1, triplet_num) * 50;
+        C_O = ones(1, triplet_num) * 40;
         %W = ranksvm(code_dist_vecs, O, C_O', w_0', svm_opt); 
 
         % online mode

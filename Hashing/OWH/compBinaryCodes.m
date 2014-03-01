@@ -25,8 +25,8 @@ codetypes{5,1} = 'iso'; codetypes{5,2} = '../unsupervised_hash_code/';
 codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
-codes = [1];
-bits = [16, 32, 48, 96, 128];
+codes = [2];
+bits = [16];
 
 for id=1:length(codes)
     
@@ -109,25 +109,27 @@ for id=1:length(codes)
             % lsh: random hash function from normal distribution
             lsh_params.nbits = code_params.nbits;
             lsh_params.funcs = randn(d, lsh_params.nbits);
+%             traindata2 = bsxfun(@minus, traindata, mean(traindata));
             traincodes = traindata * lsh_params.funcs;
             % mean + bias
             meanv = mean(traincodes,1); 
             traincodes = traincodes-repmat(meanv, n, 1); % substract mean
             t = max(abs(traincodes),[],1);
-            thres = rand(1,lsh_params.nbits).*t;   % generate threshold / bias
-            traincodes = traincodes + repmat(thres, n, 1);
+%             thres = rand(1,lsh_params.nbits).*t;   % generate threshold / bias
+%             traincodes = traincodes + repmat(thres, n, 1);
 
             traincodes = traincodes > 0;
             traincodes = single(traincodes);
             
             % test codes
+%             testdata2 = bsxfun(@minus, testdata, mean(testdata));
             testcodes = testdata * lsh_params.funcs;
             % mean + bias
             meanv = mean(testcodes,1); 
             testcodes = testcodes-repmat(meanv, ntest, 1); % substract mean
             t = max(abs(testcodes),[],1);
-            thres = rand(1,lsh_params.nbits).*t;   % generate threshold / bias
-            testcodes = testcodes + repmat(thres, ntest, 1);
+%             thres = rand(1,lsh_params.nbits).*t;   % generate threshold / bias
+%             testcodes = testcodes + repmat(thres, ntest, 1);
             testcodes = testcodes > 0;
             testcodes = single(testcodes);
             
