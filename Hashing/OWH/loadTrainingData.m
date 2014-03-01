@@ -1,5 +1,5 @@
 
-function [ traindata, trainlabels ] = loadTrainingData( dataset_id )
+function [ traindata, trainlabels, testdata, testlabels ] = loadTrainingData( dataset_id )
 %LOADTRAININGDATA Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -16,6 +16,7 @@ datasets{4,2} = 'E:\Datasets\Recognition\YoutubeFcae\kdd_face_split.mat';
 
 
 if dataset_id == 1
+    
     % use nearest neighbor to set positive samples
     trainlabels = ones(1000, 1) * 2;
     [traindata, traindistmat] = gen_dummy_data(300, 100);
@@ -25,33 +26,57 @@ if dataset_id == 1
     % !not clear how to do label here!
     similar_ids = sorted_idx(traindistmat < similar_bound);
     trainlabels(similar_ids, 1) = 1;
-    
-elseif dataset_id == 2
+
+end
+
+if dataset_id == 2
     % load gist from file
     load(datasets{2,2})
     
-    traindata = [traindata; testdata];
-    trainlabels = [traingnd; testgnd];
+%     traindata = traindata;
+%     testdata = testdata;
+    trainlabels = traingnd;
+    testlabels = testgnd;
 %     traindata = load([datasets{2,2} 'train_1_gist.txt']);
 %     trainlabels = load([datasets{2,2} 'train_1_label.txt']);
-    
-elseif dataset_id == 3
+end
+
+if dataset_id == 3
     % load handwritten character data (processed from JHU)
     % each file contains 1000 images
-    traindata = zeros(9000, 28*28);
-    trainlabels = zeros(9000, 1);
+%     alldata = zeros(10000, 28*28);
+%     alllabels = zeros(10000, 1);
+    traindata = zeros(5000, 28*28);
+    trainlabels = zeros(5000, 1);
+    testdata = zeros(5000, 28*28);
+    testlabels = zeros(5000, 1);
+    traincnt = 1;
+    testcnt = 1;
     for i=0:9
         datafile = [datasets{3,2} 'data' num2str(i)];
         fid=fopen(datafile, 'r'); %-- open the file corresponding to digit 8 
         for j=1:1000
             [imgdata, ~] = fread(fid, [28 28], 'uchar'); % colume order, to display, show transpose
-            traindata(i*1000+j, :) = reshape(imgdata, 1, 28*28);
-            trainlabels(i*1000+j, 1) = i;
+            if j<=500
+                traindata(traincnt, :) = reshape(imgdata, 1, 28*28);
+                trainlabels(traincnt, 1) = i+1;
+                traincnt = traincnt + 1;
+            end
+            if j>500
+                testdata(testcnt, :) = reshape(imgdata, 1, 28*28);
+                testlabels(testcnt, 1) = i+1;
+                testcnt = testcnt + 1;
+            end
+%             alldata(i*1000+j, :) = reshape(imgdata, 1, 28*28);
+%             alllabels(i*1000+j, 1) = i+1;
         end
+
+        
         fclose(fid);
     end
-    
-elseif dataset_id == 4
+end    
+
+if dataset_id == 4
     
     % load face dataset
     

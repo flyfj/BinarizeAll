@@ -6,10 +6,10 @@ use_data = 3;
 dataname = 'mnist';
 
 % load raw features
-[traindata, trainlabels] = loadTrainingData(use_data);
+[traindata, trainlabels, testdata, testlabels] = loadTrainingData(use_data);
 
 [n, d] = size(traindata);
-
+[ntest, d] = size(testdata);
 
 %% compute base hash code
 
@@ -17,15 +17,15 @@ disp('Computing binary code for features...');
 
 % code name | code path
 codetypes = cell(6,2);
-codetypes{1,1} = 'sh'; codetypes{1,2} = '../SH/';
-codetypes{2,1} = 'itq'; codetypes{2,2} = '../ITQ/';
+codetypes{1,1} = 'sh'; codetypes{1,2} = '../unsupervised_hash_code/';
+codetypes{2,1} = 'itq'; codetypes{2,2} = '../unsupervised_hash_code/';
 codetypes{3,1} = 'lsh'; codetypes{3,2} = '../unsupervised_hash_code/';
 codetypes{4,1} = 'mdsh'; codetypes{4,2} = '../unsupervised_hash_code/';
 codetypes{5,1} = 'iso'; codetypes{5,2} = '../unsupervised_hash_code/';
 codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
-codes = [5];
+codes = [1];
 bits = [16, 32, 48, 96, 128];
 
 for id=1:length(codes)
@@ -40,58 +40,71 @@ for id=1:length(codes)
         traincodes = [];
         testcodes = [];
 
-        loadKSH = 1;
+%         loadKSH = 1;
 
         % add code path
         addpath(genpath(codetypes{codeid, 2}));
 
         if codeid == 1
+            
             % learn sh codes
             sh_params.nbits = code_params.nbits;
             sh_params = trainSH(traindata, sh_params);
-            [traincodes, ~] = compressSH(traindata, sh_params);
-            % convert to 0/1 array
-            traincodes_str = [];
-            for i=1:size(traincodes, 2)
-                traincodes_str = [traincodes_str dec2bin(traincodes(:,i), 8)];
-            end
-            traincodes = traincodes_str - '0';
-            traincodes = single(traincodes);
-        %     % test codes
-        %     [testcodes, ~] = compressSH(testdata, sh_params);
-        %     % convert to 0/1 array
-        %     testcodes_str = [];
-        %     for i=1:size(testcodes, 2)
-        %         testcodes_str = [testcodes_str dec2bin(testcodes(:,i), 8)];
-        %     end
-        %     testcodes = testcodes_str - '0';
-
-        elseif codeid == 2
+            [~, traincodes] = compressSH(traindata, sh_params);
+            traincodes = single(traincodes > 0);
+            
+            % test codes
+            [~, testcodes] = compressSH(testdata, sh_params);
+            testcodes = single(testcodes > 0);
+            
+        end
+        
+        if codeid == 2
 
             % learn itq
-            XX = traindata;
-            sampleMean = mean(XX,1);
-            XX = (XX - repmat(sampleMean,size(XX,1),1));
-            % PCA
-            [pc, l] = eigs(cov(XX(:,:)),code_params.nbits);
-            XX = XX * pc;
-            % ITQ
-            [~, R] = ITQ(XX(:,:),50);
-            XX = XX*R;
-            traincodes = zeros(size(XX));
-            traincodes(XX>=0) = 1;
-            traincodes = compactbit(traincodes>0);
-            traincodes_str = [];
-            for i=1:size(traincodes, 2)
-                traincodes_str = [traincodes_str dec2bin(traincodes(:,i), 8)];
-            end
-            traincodes = traincodes_str - '0';
+%             XX = traindata;
+%             sampleMean = mean(XX,1);
+%             XX = (XX - repmat(sampleMean,size(XX,1),1));
+%             % PCA
+%             [pc, l] = eigs(cov(XX(:,:)),code_params.nbits);
+%             XX = XX * pc;
+%             % ITQ
+%             [~, R] = ITQ(XX(:,:),50);
+%             XX = XX*R;
+%             traincodes = zeros(size(XX));
+%             traincodes(XX>=0) = 1;
+%             traincodes = compactbit(traincodes>0);
+%             traincodes_str = [];
+%             for i=1:size(traincodes, 2)
+%                 traincodes_str = [traincodes_str dec2bin(traincodes(:,i), 8)];
+%             end
+%             traincodes = traincodes_str - '0';
+%             traincodes = single(traincodes);
+
+            meanv = mean(traindata,1);
+            traindata = traindata - repmat(meanv,n,1);
+            cov = traindata'*traindata;
+            [U,V] = eig(cov);
+            eigenvalue = diag(V)';
+            [eigenvalue,order] = sort(eigenvalue,'descend');
+            W = U(:,order(1:code_params.nbits));
+            traincodes = traindata*W;
+
+            [temp, R] = ITQ(traincodes,50);
+            W = W*R;
+            meanv = meanv*W;
+
+            traincodes = traincodes*R;
+            traincodes = (traincodes>0);
             traincodes = single(traincodes);
-
-            % testcodes; take from traincodes
-        %     testcodes = traincodes(testids, :);
-
-        elseif codeid == 3
+            
+            testcodes = testdata*W - repmat(meanv,ntest,1);
+            testcodes = (testcodes>0);
+            testcodes = single(testcodes);
+            
+        end
+        
+        if codeid == 3
 
             % lsh: random hash function from normal distribution
             lsh_params.nbits = code_params.nbits;
@@ -106,11 +119,21 @@ for id=1:length(codes)
 
             traincodes = traincodes > 0;
             traincodes = single(traincodes);
+            
             % test codes
-        %     testcodes = (lsh_params.funcs * testdata')';
-        %     testcodes = testcodes > 0;
-
-        elseif codeid == 4
+            testcodes = testdata * lsh_params.funcs;
+            % mean + bias
+            meanv = mean(testcodes,1); 
+            testcodes = testcodes-repmat(meanv, ntest, 1); % substract mean
+            t = max(abs(testcodes),[],1);
+            thres = rand(1,lsh_params.nbits).*t;   % generate threshold / bias
+            testcodes = testcodes + repmat(thres, ntest, 1);
+            testcodes = testcodes > 0;
+            testcodes = single(testcodes);
+            
+        end
+        
+        if codeid == 4
 
             % mdsh
             Sigma = 0.4;
@@ -119,9 +142,15 @@ for id=1:length(codes)
             SHparamNew = trainMDSH(traindata, SHparamNew);
             [B,traincodes] = compressMDSH(traindata, SHparamNew);
             traincodes = traincodes > 0;
-            triancodes = single(traincodes);
+            traincodes = single(traincodes);
+            
+            [B, testcodes] = compressMDSH(testdata, SHparamNew);
+            testcodes = testcodes > 0;
+            testcodes = single(testcodes);
 
-        elseif codeid == 5
+        end
+        
+        if codeid == 5
             
             % iso hashing
             meanv = mean(traindata, 1);
@@ -137,10 +166,14 @@ for id=1:length(codes)
             W = W*R;
             meanv = meanv*W;
             traincodes = traindata*W;
-            traincodes = (traincodes>0);
-            traincodes = single(traincodes);
+            traincodes = single(traincodes > 0);
             
-        elseif codeid == 6
+            testcodes = testdata*W-repmat(meanv, ntest, 1);
+            testcodes = single(testcodes > 0);
+            
+        end
+        
+        if codeid == 6
 
             % ksh
             if(loadKSH == 1)
@@ -241,7 +274,11 @@ for id=1:length(codes)
 
         end
 
-        save(savefile, 'traincodes', 'trainlabels');
+        if codeid ~= 4
+            save(savefile, 'traincodes', 'trainlabels', 'testcodes', 'testlabels');
+        else
+            save(savefile, 'traincodes', 'trainlabels', 'testcodes', 'testlabels', 'SHparamNew');
+        end
 
         disp(['Saved code to ' savefile]);
         

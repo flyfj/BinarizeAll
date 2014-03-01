@@ -11,9 +11,10 @@ distMat = zeros(size(code1, 1), size(code2, 1));
 for i=1:size(code1, 1)
     
     codediff = abs(repmat(code1(i,:), num2, 1) - code2);
-    if type == 1
-        codediff = double(2*codediff - 1);
-    end
+%     codediff = double(2*codediff - 1);
+%     if type == 1
+%         codediff = double(2*codediff - 1);
+%     end
     distMat(i,:) = weights * codediff';
     
 end

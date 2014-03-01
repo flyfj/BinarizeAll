@@ -122,10 +122,10 @@ while 1
     w = w + t*step;
     % to avoid zero or negative value for w
     % recover non-positive value to original value
-    %invalid_ids = find(w <= 0);
-    %w(invalid_ids) = w_old(invalid_ids);
-    %w = w + t*step;
-    fprintf(['Iter = %d, Obj = %f, Nb of sv = %d, Newton decr = %.3f, ' ...
+    invalid_ids = find(w <= 0);
+    w(invalid_ids) = 0; %w_old(invalid_ids);
+%     w = w + t*step;
+    fprintf(['Iter = %d, Obj = %f, Nb of sv = %d, Newton decr = %.6f, ' ...
             'Line search = %.3f, Lin CG acc = %.4f     \n'],...
            iter,obj,sum(sv),-step'*grad/2,t,relres);
     

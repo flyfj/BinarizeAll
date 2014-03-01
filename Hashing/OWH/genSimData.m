@@ -1,4 +1,4 @@
-function sim_data = genSimData( cls_samp_ids, type )
+function sim_data = genSimData( cls_samp_ids, type, pnum )
 %GENSIMDATA Summary of this function goes here
 %   generate similarity data
 %   cls_samp_nums: cell of C classes, each containing object ids (in training set) or object number for each class
@@ -18,7 +18,7 @@ if strcmp(type, 'pair')
     sim_data = cell(2,1);
     
     % sample certain number
-    sim_pair_num = 8000;
+    sim_pair_num = pnum;
     sim_data{1,1} = zeros(sim_pair_num, 4);
     
     % similar pairs within each class
@@ -72,12 +72,13 @@ if strcmp(type, 'pair')
     end
     
     
-    
-elseif strcmp(type, 'triplet')
+end
+
+if strcmp(type, 'triplet')
         
         % triplet format: (samp_id, sim_id1, sim_id2, dis_id)
         % randomly select subset from same class as positive, the rest as negative
-        triplet_num = 8000;
+        triplet_num = pnum;
         % 1-2: query; 3-4: 1st sim; 5-6: 2nd sim; 7-8: dis
         sim_data = zeros(triplet_num, 8);
         
