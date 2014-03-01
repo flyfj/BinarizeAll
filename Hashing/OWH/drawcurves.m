@@ -6,11 +6,12 @@ datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
-codes = [3];
-bits = [16, 32, 48, 96, 128];
+codes = [1, 2, 3, 5];
+bits = [32];
 
 drawBase = 1;
-drawWeighted = 0;
+drawWeighted = 1;
+drawwhrank = 1;
 
 colors = {'g', 'r', 'k', 'c', 'm'};
 
@@ -45,10 +46,20 @@ for i=1:length(codes)
             hold on
         end
         
+        if drawwhrank == 1
+            prfile = sprintf('%s/res/%s_%s_%db_pr_whrank.mat', datadir, dataname, codename, bits(j));
+            code_pr = load(prfile);
+            code_pr = code_pr.pr;
+            plot(code_pr(:,2), code_pr(:,1), sprintf('%ss-', colors{i}), 'LineWidth', 2)
+            hold on
+            
+        end
+        
     end
 end
 
 pause
+close all
 
 % 
 % % base code

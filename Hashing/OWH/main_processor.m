@@ -1,5 +1,5 @@
 
-function [base_pr, learn_pr] = main_processor(dataname, codename, nbits, tolearn)
+function [base_pr, learn_pr] = main_processor(dataname, codename, nbits, method)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % main entrance for owh
@@ -8,10 +8,13 @@ function [base_pr, learn_pr] = main_processor(dataname, codename, nbits, tolearn
 % 3. learn weights
 % 4. evaluation
 
+% method 0: base code; 1: learn weighted; 2: whrank
+
 
 %% load binary codes
 
 addpath(genpath('svm'));
+addpath(genpath('../unsupervised_hash_code/'));
 
 % dataname = 'mnist';
 % codename = 'sh';
@@ -24,9 +27,21 @@ disp(['Dataset: ' dataname '; Code: ' codename '; bits: ' num2str(nbits)]);
 disp('Loading binary codes...');
 
 code_params.nbits = nbits;
-codefile = sprintf('%s/data/%s_codes/%s_%s_%db.mat', datadir, dataname, dataname, codename, nbits);
-basecurvefile = sprintf('%s/res/%s_%s_%db_pr.mat', datadir, dataname, codename, nbits);
-learncurvefile = sprintf('%s/res/%s_%s_%db_pr_weighted.mat', datadir, dataname, codename, nbits);
+codefile = sprintf('%sdata/%s_codes/%s_%s_%db.mat', datadir, dataname, dataname, codename, nbits);
+basecurvefile = sprintf('%sres/%s_%s_%db_pr.mat', datadir, dataname, codename, nbits);
+learncurvefile = sprintf('%sres/%s_%s_%db_pr_weighted.mat', datadir, dataname, codename, nbits);
+whrankcurvefile = sprintf('%sres/%s_%s_%db_pr_whrank.mat', datadir, dataname, codename, nbits);
+
+if method == 2
+    % load whrank parameters and data
+    whrankfile = sprintf('%sdata/%s_%s_%db_whrank.mat', datadir, dataname, codename, nbits);
+    load(whrankfile);
+    uncodefile = sprintf('%sdata/%s_codes/%s_%s_%db_un.mat', datadir, dataname, dataname, codename, nbits);
+    load(uncodefile);
+    traincodes_un = traincodes;
+    testcodes_un = testcodes;
+end
+
 
 load(codefile);
 
@@ -45,14 +60,16 @@ end
 disp('Binary code loaded.');
 
 
+
+
 %% generate similarity pairs
-if tolearn == 1
+if method == 1
     disp('Generating training pairs...');
 
     if ~exist('sim_data', 'var')
-        sim_data = genSimData(traingroups, 'triplet', 3000);
-        sim_data2 = genSimData(testgroups, 'triplet', 3000);
-        sim_data = [sim_data; sim_data2];
+        sim_data = genSimData(traingroups, 'triplet', 8000);
+%         sim_data2 = genSimData(testgroups, 'triplet', 2000);
+%         sim_data = [sim_data; sim_data2];
     end
 
     disp('Generating training pairs done.');
@@ -60,7 +77,7 @@ end
 
 %% learn weights using ranksvm formulation
 
-if tolearn == 1
+if method == 1
 
     disp('Learning weights...');
 
@@ -72,7 +89,7 @@ if tolearn == 1
     svm_opt.lin_cg = 0; % not use conjugate gradient
     svm_opt.iter_max_Newton = 200;   % Maximum number of Newton steps
     svm_opt.prec = 0.0000000001;    %   prec: Stopping criterion
-    w_0 = zeros(1, code_params.nbits);   % initial weights
+    w_0 = ones(1, code_params.nbits);   % initial weights
     W = [];
 
     if strcmp(svm_type, 'ranksvm')
@@ -88,12 +105,12 @@ if tolearn == 1
         cnt = 1;
         for i=1:triplet_num
             % compute similar pair distance
-            code_dist_vecs(cnt,:) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,4), :) );
+            code_dist_vecs(cnt,:) = abs( testcodes(sim_data(i,2), :) - testcodes(sim_data(i,4), :) );
             cnt = cnt + 1;
-            code_dist_vecs(cnt,:) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,6), :) );
+            code_dist_vecs(cnt,:) = abs( testcodes(sim_data(i,2), :) - testcodes(sim_data(i,6), :) );
             sim_idx(i,:) = [cnt cnt-1];
             cnt = cnt + 1;
-            code_dist_vecs(cnt, :) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,8), :) );
+            code_dist_vecs(cnt, :) = abs( testcodes(sim_data(i,2), :) - testcodes(sim_data(i,8), :) );
             ordered_idx(i,:) = [cnt cnt-2];
             cnt = cnt + 1;
 
@@ -102,6 +119,7 @@ if tolearn == 1
         % convert to -1 / 1
         code_dist_vecs = double(2*code_dist_vecs - 1);
         imagesc(code_dist_vecs)
+%         pause
 
         % construct ordering and similarity matrix: pair_num X sample_num
         O = zeros(triplet_num, size(code_dist_vecs, 1));
@@ -109,8 +127,8 @@ if tolearn == 1
         % Each row of O should contain exactly one +1 and one -1.
         for i=1:length(sim_idx)
 
-            S(i, sim_idx(i,1)) = -1;
-            S(i, sim_idx(i,2)) = 1;
+            S(i, sim_idx(i,1)) = 1;
+            S(i, sim_idx(i,2)) = -1;
         end
 
         for i=1:length(ordered_idx)
@@ -120,9 +138,9 @@ if tolearn == 1
         end
 
         % use rank-svm first
-        C_S = ones(1, triplet_num) * 50;
-        C_O = ones(1, triplet_num) * 40;
-        %W = ranksvm(code_dist_vecs, O, C_O', w_0', svm_opt); 
+        C_S = ones(1, triplet_num) * 0.1;
+        C_O = ones(1, triplet_num) * 0.1;
+%         W = ranksvm(code_dist_vecs, O, C_O', w_0', svm_opt); 
 
         % online mode
 
@@ -175,7 +193,8 @@ if tolearn == 1
 
         %pred_labels = svmclassify(svmmodel, X);
         [pred_labels, accuracy, scores] = svmpredict(newlabels(trainsz+1:end,:), X(trainsz+1:end,:), svmmodel);
-
+        [poslabels, ~] = find( newlabels(trainsz+1:end, :) == 1 );
+        length( find( pred_labels(poslabels, 1) == 1 ) ) / size(poslabels, 1)
 
         % test a query
         testid = 44;
@@ -187,8 +206,8 @@ if tolearn == 1
         truelabels = -ones(length(testlabels), 1);
         truelabels(gtlabels) = 1;
         [pred_labels, accuracy, scores] = svmpredict(truelabels, test_dist_vecs, svmmodel);
-    %     corr_num = intersect( find(pred_labels==1), train_groups{trainlabel(testid,1), 1} );
-    %     corr_num = length(corr_num) / length(train_groups{trainlabel(testid,1), 1});
+        [poslabels, ~] = find( truelabels == 1 );
+        length( find( pred_labels(poslabels, 1) == 1 ) ) / size(poslabels, 1)
 
         % use scores to simply evaluate ranking performance
         [scores_sorted, score_sorted_idx] = sort(scores, 1, 'descend');
@@ -242,6 +261,7 @@ step = int32(size(testcodes, 1) / ptnum);
 
 base_pr = zeros(ptnum, 2);
 learn_pr = zeros(ptnum, 2);
+whrank_pr = zeros(ptnum, 2);
 
 % W = w1;
 
@@ -250,18 +270,31 @@ for i=1:length(testgroups)
     
     % process current code
     testlabel = i;
-    testsamp = testcodes(randsample(testgroups{i}, 15), :);
+    testsampids = randsample(testgroups{i}, 50);
+    testsamp = testcodes(testsampids, :);
+    testsamp_un = testcodes_un(testsampids, :);
     
-    if tolearn == 0
+    if method == 0
         % base distance ranking
-        base_dists = weightedHam(testsamp, testcodes, w1', 0);
-        [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
+        if strcmp(codename, 'mdsh') == 1
+            base_dists = hammingDistEfficientNew(testsamp, testcodes, SHparamNew);
+            [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2, 'descend');
+        else
+            base_dists = weightedHam(testsamp, testcodes, w1', 0);
+            [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
+        end
+        
     end
     
-    if tolearn == 1
+    if method == 1
         % weighted distance ranking
-        learn_dists = weightedHam(testsamp, testcodes, W', 1);
+        learn_dists = weightedHam(testsamp, testcodes, W', 0);
         [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
+    end
+    
+    if method == 2
+        whrank_dists = whrankHam(testsamp_un, testsamp, testcodes, fstd);
+        [whrank_sorted_dist, whrank_sorted_idx] = sort(whrank_dists, 2);
     end
     
     dbids = testgroups{testlabel};
@@ -274,19 +307,27 @@ for i=1:length(testgroups)
             
             topnum = double( (j-1)*step + 1 );
             
-            if tolearn == 0
+            if method == 0
                 % intersection value
-                base_correct_num = length( intersect( base_sorted_idx(k, 1:topnum), dbids ) );
+                base_correct_num = length( find( (testlabels(base_sorted_idx(k, 1:topnum)) == i) > 0) ); 
+%                 base_correct_num = length( intersect( base_sorted_idx(k, 1:topnum), dbids ) );
                 % precision
                 base_pr(j, 1) = base_pr(j,1) + double(base_correct_num) / topnum;
                 % recall
                 base_pr(j, 2) = base_pr(j,2) + double(base_correct_num) / length(dbids);
             end
             
-            if tolearn == 1
-                learn_correct_num = length( intersect( learn_sorted_idx(k, 1:topnum), dbids ) );
+            if method == 1
+                learn_correct_num = length( find( (testlabels(learn_sorted_idx(k, 1:topnum)) == i) > 0) ); 
+%                 learn_correct_num = length( intersect( learn_sorted_idx(k, 1:topnum), dbids ) );
                 learn_pr(j, 1) = learn_pr(j,1) + double(learn_correct_num) / topnum;
                 learn_pr(j, 2) = learn_pr(j,2) + double(learn_correct_num) / length(dbids);
+            end
+            
+            if method == 2
+                whrank_correct_num = length( find( (testlabels(whrank_sorted_idx(k, 1:topnum)) == i) > 0) ); 
+                whrank_pr(j, 1) = whrank_pr(j,1) + double(whrank_correct_num) / topnum;
+                whrank_pr(j, 2) = whrank_pr(j,2) + double(whrank_correct_num) / length(dbids);
             end
             
         end
@@ -298,15 +339,21 @@ end
 
 base_pr = base_pr ./ cnt;
 learn_pr = learn_pr ./ cnt;
+whrank_pr = whrank_pr ./ cnt;
 
-if tolearn == 0
+if method == 0
     pr = base_pr;
     save(basecurvefile, 'pr');
 end
 
-if tolearn == 1
+if method == 1
     pr = learn_pr;
     save(learncurvefile, 'pr');
+end
+
+if method == 2
+    pr = whrank_pr;
+    save(whrankcurvefile, 'pr');
 end
 
 

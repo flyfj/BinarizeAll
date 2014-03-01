@@ -74,7 +74,7 @@ function w = ranksvm(X_,A_,C,w,opt)
     % to avoid zero or negative value for w
     % recover non-positive value to original value
     invalid_ids = find(w <= 0);
-    w(invalid_ids) = w_old(invalid_ids);
+    w(invalid_ids) = 0; %w_old(invalid_ids);
     
     
     fprintf(['Iter = %d, Obj = %f, Nb of sv = %d, Newton decr = %.3f, ' ...

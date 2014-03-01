@@ -20,7 +20,7 @@ disp('Computing binary code for features...');
 
 % code name | code path
 codetypes = cell(6,2);
-codetypes{1,1} = 'sh'; codetypes{1,2} = '../unsupervised_hash_code/';
+codetypes{1,1} = 'sh'; codetypes{1,2} = '../SH/';
 codetypes{2,1} = 'itq'; codetypes{2,2} = '../unsupervised_hash_code/';
 codetypes{3,1} = 'lsh'; codetypes{3,2} = '../unsupervised_hash_code/';
 codetypes{4,1} = 'mdsh'; codetypes{4,2} = '../unsupervised_hash_code/';
@@ -28,8 +28,10 @@ codetypes{5,1} = 'iso'; codetypes{5,2} = '../unsupervised_hash_code/';
 codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
-codes = [3];
+codes = [1, 2, 3, 5];
 bits = [16, 32, 48, 96, 128];
+
+binarize = 0;
 
 for id=1:length(codes)
     
@@ -37,8 +39,12 @@ for id=1:length(codes)
         
         codeid = codes(id);
         code_params.nbits = bits(j);
-        savefile = sprintf('%s/data/%s_%s_%db.mat', datadir, dataname, codetypes{codeid,1}, bits(j));
-
+        if binarize == 1
+            savefile = sprintf('%sdata/%s_%s_%db.mat', datadir, dataname, codetypes{codeid,1}, bits(j));
+        else
+            savefile = sprintf('%sdata/%s_%s_%db_un.mat', datadir, dataname, codetypes{codeid,1}, bits(j));
+        end
+        
         %code_type = 3;
         traincodes = [];
         testcodes = [];
@@ -54,11 +60,15 @@ for id=1:length(codes)
             sh_params.nbits = code_params.nbits;
             sh_params = trainSH(traindata, sh_params);
             [~, traincodes] = compressSH(traindata, sh_params);
-            traincodes = single(traincodes > 0);
+            if binarize == 1
+                traincodes = single(traincodes > 0);
+            end
             
             % test codes
             [~, testcodes] = compressSH(testdata, sh_params);
-            testcodes = single(testcodes > 0);
+            if binarize
+                testcodes = single(testcodes > 0);
+            end
             
         end
         
@@ -85,25 +95,23 @@ for id=1:length(codes)
 %             traincodes = single(traincodes);
 
             meanv = mean(traindata,1);
-            traindata = traindata - repmat(meanv,n,1);
-            cov = traindata'*traindata;
-            [U,V] = eig(cov);
-            eigenvalue = diag(V)';
-            [eigenvalue,order] = sort(eigenvalue,'descend');
-            W = U(:,order(1:code_params.nbits));
-            traincodes = traindata*W;
-
-            [temp, R] = ITQ(traincodes,50);
-            W = W*R;
-            meanv = meanv*W;
+            traindata = traindata - repmat(meanv, n, 1);
+            % PCA
+            [pc, l] = eigs(cov(traindata(:,:)), code_params.nbits);
+            traincodes = traindata * pc;
+            [~, R] = ITQ(traincodes, 50);
+            pc = pc*R;
+            meanv = meanv*pc;
 
             traincodes = traincodes*R;
-            traincodes = (traincodes>0);
-            traincodes = single(traincodes);
+            if binarize == 1
+                traincodes = single(traincodes>0);
+            end
             
-            testcodes = testdata*W - repmat(meanv,ntest,1);
-            testcodes = (testcodes>0);
-            testcodes = single(testcodes);
+            testcodes = testdata*pc - repmat(meanv, ntest, 1);
+            if binarize == 1
+                testcodes = single(testcodes>0);
+            end
             
         end
         
@@ -122,8 +130,9 @@ for id=1:length(codes)
 %             thres = rand(1,lsh_params.nbits).*t;   % generate threshold / bias
 %             traincodes = traincodes + repmat(thres, n, 1);
 
-            traincodes = traincodes > 0;
-            traincodes = single(traincodes);
+            if binarize == 1
+                traincodes = single(traincodes > 0);
+            end
             
             % test codes
 %             testdata2 = bsxfun(@minus, testdata, mean(testdata));
@@ -134,25 +143,30 @@ for id=1:length(codes)
 %             t = max(abs(testcodes),[],1);
 %             thres = rand(1,lsh_params.nbits).*t;   % generate threshold / bias
 %             testcodes = testcodes + repmat(thres, ntest, 1);
-            testcodes = testcodes > 0;
-            testcodes = single(testcodes);
+            if binarize == 1
+                testcodes = single(testcodes > 0);
+            end
             
         end
         
         if codeid == 4
 
             % mdsh
-            Sigma = 0.4;
+            Sigma = 0.1;
             SHparamNew.nbits = code_params.nbits; % number of bits to code each sample
             SHparamNew.sigma = Sigma; % Sigma for the affinity. Different codes for different sigmas!
             SHparamNew = trainMDSH(traindata, SHparamNew);
-            [B,traincodes] = compressMDSH(traindata, SHparamNew);
-            traincodes = traincodes > 0;
-            traincodes = single(traincodes);
+            [~, traincodes] = compressMDSH(traindata, SHparamNew);
+            if binarize == 1
+                traincodes = sign(traincodes);
+            end
+%             traincodes = single(traincodes > 0);
             
-            [B, testcodes] = compressMDSH(testdata, SHparamNew);
-            testcodes = testcodes > 0;
-            testcodes = single(testcodes);
+            [~, testcodes] = compressMDSH(testdata, SHparamNew);
+            if binarize == 1
+                testcodes = sign(testcodes);
+            end
+%             testcodes = single(testcodes > 0);
 
         end
         
@@ -172,10 +186,14 @@ for id=1:length(codes)
             W = W*R;
             meanv = meanv*W;
             traincodes = traindata*W;
-            traincodes = single(traincodes > 0);
+            if binarize == 1
+                traincodes = single(traincodes > 0);
+            end
             
             testcodes = testdata*W-repmat(meanv, ntest, 1);
-            testcodes = single(testcodes > 0);
+            if binarize == 1
+                testcodes = single(testcodes > 0);
+            end
             
         end
         
