@@ -34,7 +34,7 @@ whrankcurvefile = sprintf('%sres/%s_%s_%db_pr_whrank.mat', datadir, dataname, co
 
 if method == 2
     % load whrank parameters and data
-    whrankfile = sprintf('%sdata/%s_%s_%db_whrank.mat', datadir, dataname, codename, nbits);
+    whrankfile = sprintf('%sdata/whrank/%s_%s_%db_whrank.mat', datadir, dataname, codename, nbits);
     load(whrankfile);
     uncodefile = sprintf('%sdata/%s_codes/%s_%s_%db_un.mat', datadir, dataname, dataname, codename, nbits);
     load(uncodefile);
@@ -272,7 +272,6 @@ for i=1:length(testgroups)
     testlabel = i;
     testsampids = randsample(testgroups{i}, 50);
     testsamp = testcodes(testsampids, :);
-    testsamp_un = testcodes_un(testsampids, :);
     
     if method == 0
         % base distance ranking
@@ -293,6 +292,7 @@ for i=1:length(testgroups)
     end
     
     if method == 2
+        testsamp_un = testcodes_un(testsampids, :);
         whrank_dists = whrankHam(testsamp_un, testsamp, testcodes, fstd);
         [whrank_sorted_dist, whrank_sorted_idx] = sort(whrank_dists, 2);
     end
@@ -300,7 +300,7 @@ for i=1:length(testgroups)
     dbids = testgroups{testlabel};
     
     % compute pr values
-    for k=1:2:size(testsamp,1)    % every sample
+    for k=1:size(testsamp,1)    % every sample
         cnt = cnt + 1;
         
         for j=1:ptnum    % each top result level

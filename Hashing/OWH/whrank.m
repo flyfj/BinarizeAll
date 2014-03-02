@@ -20,14 +20,14 @@ for id=1:length(codes)
     for j=1:length(bits)
         
         datafile = sprintf('%sdata/%s_codes/%s_%s_%db_un.mat', datadir, dataname, dataname, codename, bits(j));
-        savefile = sprintf('%sdata/%s_%s_%db_whrank.mat', datadir, dataname, codename, bits(j));
+        savefile = sprintf('%sdata/whrank/%s_%s_%db_whrank.mat', datadir, dataname, codename, bits(j));
         
         load(datafile);
         [n, d] = size(traincodes);
         labels = unique(trainlabels);
         traingroups = cell(length(labels), 1);
         % randomly sample similar pairs
-        pairnum = 10000;
+        pairnum = 20000;
         diffvals = zeros(pairnum, bits(j));
         for i=1:pairnum
             clsid = randsample(labels, 1);

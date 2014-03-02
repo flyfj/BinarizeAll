@@ -58,12 +58,12 @@ if dataset_id == 3
         for j=1:1000
             [imgdata, ~] = fread(fid, [28 28], 'uchar'); % colume order, to display, show transpose
             if j<=500
-                traindata(traincnt, :) = reshape(imgdata, 1, 28*28);
+                traindata(traincnt, :) = reshape(imgdata', 1, 28*28);
                 trainlabels(traincnt, 1) = i+1;
                 traincnt = traincnt + 1;
             end
             if j>500
-                testdata(testcnt, :) = reshape(imgdata, 1, 28*28);
+                testdata(testcnt, :) = reshape(imgdata', 1, 28*28);
                 testlabels(testcnt, 1) = i+1;
                 testcnt = testcnt + 1;
             end

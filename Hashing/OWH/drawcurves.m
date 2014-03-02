@@ -6,11 +6,11 @@ datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
-codes = [1, 2, 3, 5];
+codes = [1 2 3 5];
 bits = [32];
 
 drawBase = 1;
-drawWeighted = 1;
+drawWeighted = 0;
 drawwhrank = 1;
 
 colors = {'g', 'r', 'k', 'c', 'm'};

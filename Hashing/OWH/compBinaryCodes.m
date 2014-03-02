@@ -2,6 +2,8 @@
 
 %% compute binary codes for each dataset
 
+clear
+
 datanames = {'dummay', 'cifar', 'mnist'};
 use_data = 3;
 dataname = datanames{use_data};
@@ -28,7 +30,7 @@ codetypes{5,1} = 'iso'; codetypes{5,2} = '../unsupervised_hash_code/';
 codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
-codes = [1, 2, 3, 5];
+codes = [1 2 3 5];
 bits = [16, 32, 48, 96, 128];
 
 binarize = 0;
