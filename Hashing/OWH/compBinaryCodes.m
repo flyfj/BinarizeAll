@@ -5,7 +5,7 @@
 clear
 
 datanames = {'dummay', 'cifar', 'mnist'};
-use_data = 3;
+use_data = 2;
 dataname = datanames{use_data};
 
 datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
@@ -30,10 +30,10 @@ codetypes{5,1} = 'iso'; codetypes{5,2} = '../unsupervised_hash_code/';
 codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
-codes = [1 2 3 5];
+codes = [4];
 bits = [16, 32, 48, 96, 128];
 
-binarize = 0;
+binarize = 1;
 
 for id=1:length(codes)
     
@@ -154,7 +154,7 @@ for id=1:length(codes)
         if codeid == 4
 
             % mdsh
-            Sigma = 0.1;
+            Sigma = 0.4;
             SHparamNew.nbits = code_params.nbits; % number of bits to code each sample
             SHparamNew.sigma = Sigma; % Sigma for the affinity. Different codes for different sigmas!
             SHparamNew = trainMDSH(traindata, SHparamNew);
