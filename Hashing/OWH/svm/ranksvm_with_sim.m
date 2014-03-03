@@ -123,7 +123,7 @@ while 1
     % to avoid zero or negative value for w
     % recover non-positive value to original value
     invalid_ids = find(w <= 0);
-    w(invalid_ids) = 0; %w_old(invalid_ids);
+%     w(invalid_ids) = 0; %w_old(invalid_ids);
 
     fprintf(['Iter = %d, Obj = %f, Nb of sv = %d, Newton decr = %.6f, ' ...
             'Line search = %.3f, Lin CG acc = %.4f     \n'],...

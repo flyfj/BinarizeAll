@@ -72,7 +72,7 @@ if method == 1
     disp('Generating training pairs...');
 
     if ~exist('sim_data', 'var')
-        sim_data = genSimData(traingroups, 'triplet', 5000);
+        sim_data = genSimData(testgroups, 'triplet', 7000);
 %         sim_data2 = genSimData(testgroups, 'triplet', 2000);
 %         sim_data = [sim_data; sim_data2];
     end
@@ -91,10 +91,10 @@ if method == 1
     svm_type = 'ranksvm';
 
     % construct parameters for svm code
-    svm_opt.lin_cg = 0; % not use conjugate gradient
+    svm_opt.lin_cg = 1; % not use conjugate gradient
     svm_opt.iter_max_Newton = 200;   % Maximum number of Newton steps
     svm_opt.prec = 0.0000000001;    %   prec: Stopping criterion
-    w_0 = zeros(1, code_params.nbits);   % initial weights
+    w_0 = ones(1, code_params.nbits);   % initial weights
     W = [];
 
     if strcmp(svm_type, 'ranksvm')
@@ -110,12 +110,12 @@ if method == 1
         cnt = 1;
         for i=1:triplet_num
             % compute similar pair distance
-            code_dist_vecs(cnt,:) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,4), :) );
+            code_dist_vecs(cnt,:) = abs( testcodes(sim_data(i,2), :) - testcodes(sim_data(i,4), :) );
             cnt = cnt + 1;
-            code_dist_vecs(cnt,:) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,6), :) );
+            code_dist_vecs(cnt,:) = abs( testcodes(sim_data(i,2), :) - testcodes(sim_data(i,6), :) );
             sim_idx(i,:) = [cnt cnt-1];
             cnt = cnt + 1;
-            code_dist_vecs(cnt, :) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,8), :) );
+            code_dist_vecs(cnt, :) = abs( testcodes(sim_data(i,2), :) - testcodes(sim_data(i,8), :) );
             ordered_idx(i,:) = [cnt cnt-2];
             cnt = cnt + 1;
 
@@ -123,8 +123,8 @@ if method == 1
 
         % convert to -1 / 1
         code_dist_vecs = double(2*code_dist_vecs - 1);
-%         imagesc(code_dist_vecs)
-%         pause
+        imagesc(code_dist_vecs)
+        pause
 
         % construct ordering and similarity matrix: pair_num X sample_num
         O = zeros(triplet_num, size(code_dist_vecs, 1));
@@ -143,8 +143,8 @@ if method == 1
         end
 
         % use rank-svm first
-        C_S = ones(1, triplet_num) * 0.1;
-        C_O = ones(1, triplet_num) * 0.1;
+        C_S = ones(1, triplet_num) * 100;
+        C_O = ones(1, triplet_num) * 100;
 %         W = ranksvm(code_dist_vecs, O, C_O', w_0', svm_opt); 
 
         % online mode
@@ -170,7 +170,7 @@ if method == 1
         % use hamming distance vector as sample
         global X;
         sampnum = size(sim_data{1,1}, 1);
-        X = zeros(sampnum, code_params.nbits);
+        X = zeros(2*sampnum, code_params.nbits);
         newlabels = zeros(size(X,1), 1);
 
         cnt = 1;
@@ -188,7 +188,7 @@ if method == 1
         X = X*2 - 1;
 
         trainsz = int32(size(X,1)*0.9);
-        svmmodel = svmtrain( double(newlabels(1:trainsz,:)), double(X(1:trainsz,:)), '-t 2');
+        svmmodel = svmtrain( double(newlabels(1:trainsz,:)), double(X(1:trainsz,:)), '-t 0');
 
         %svmoption = statset('Display', 'iter');
         %svmmodel = svmtrain(X, newlabels, 'kernel_function', 'quadratic', 'showplot', 0, 'options', svmoption);
@@ -202,41 +202,41 @@ if method == 1
         length( find( pred_labels(poslabels, 1) == 1 ) ) / size(poslabels, 1)
 
         % test a query
-        testid = 44;
-        gtlabels = testgroups{testlabels(testid,1), 1};
-        % compute difference vector with each testcode
-        test_dist_vecs = repmat(testcodes(testid,:), size(testcodes, 1), 1);
-        test_dist_vecs = abs(test_dist_vecs - testcodes) * 2 - 1;
-        test_dist_vecs = double(test_dist_vecs);
-        truelabels = -ones(length(testlabels), 1);
-        truelabels(gtlabels) = 1;
-        [pred_labels, accuracy, scores] = svmpredict(truelabels, test_dist_vecs, svmmodel);
-        [poslabels, ~] = find( truelabels == 1 );
-        length( find( pred_labels(poslabels, 1) == 1 ) ) / size(poslabels, 1)
-
-        % use scores to simply evaluate ranking performance
-        [scores_sorted, score_sorted_idx] = sort(scores, 1, 'descend');
-        score_inters = zeros(2, size(testcodes, 1));
-        for i=1:size(testcodes, 1)
-            % intersection value
-            inter_num = length( intersect( score_sorted_idx(1:i, 1), gtlabels ) );
-            % precision
-            score_inters(1,i) = double(inter_num) / i;
-            % recall
-            score_inters(2,i) = double(inter_num) / length(gtlabels);
-        end
-
-        % draw precision curve
-        close all
-        xlabel('Recall')
-        ylabel('Precision')
-        hold on
-        axis([0 1 0 1]);
-        hold on
-        plot(score_inters(2,:), score_inters(1,:), 'r-')
-        hold on
-        legend('Clf')
-        pause
+%         testid = 666;
+%         gtlabels = testgroups{testlabels(testid,1), 1};
+%         % compute difference vector with each testcode
+%         test_dist_vecs = repmat(testcodes(testid,:), size(testcodes, 1), 1);
+%         test_dist_vecs = abs(test_dist_vecs - testcodes) * 2 - 1;
+%         test_dist_vecs = double(test_dist_vecs);
+%         truelabels = -ones(length(testlabels), 1);
+%         truelabels(gtlabels) = 1;
+%         [pred_labels, accuracy, scores] = svmpredict(truelabels, test_dist_vecs, svmmodel);
+%         [poslabels, ~] = find( truelabels == 1 );
+%         length( find( pred_labels(poslabels, 1) == 1 ) ) / size(poslabels, 1)
+% 
+%         % use scores to simply evaluate ranking performance
+%         [scores_sorted, score_sorted_idx] = sort(scores, 1, 'descend');
+%         score_inters = zeros(2, size(testcodes, 1));
+%         for i=1:size(testcodes, 1)
+%             % intersection value
+%             inter_num = length( find( (testlabels(score_sorted_idx(1:i)) == testlabels(testid)) > 0) ); 
+%             % precision
+%             score_inters(1,i) = double(inter_num) / i;
+%             % recall
+%             score_inters(2,i) = double(inter_num) / length(gtlabels);
+%         end
+% 
+%         % draw precision curve
+%         close all
+%         xlabel('Recall')
+%         ylabel('Precision')
+%         hold on
+%         axis([0 1 0 1]);
+%         hold on
+%         plot(score_inters(2,:), score_inters(1,:), 'r-')
+%         hold on
+%         legend('Clf')
+%         pause
 
     end
 
@@ -261,7 +261,7 @@ imgsz = 32;
 %pickids = testlabels(1:numtest, :);
 % pickids = randsample(testgroups{1,1}, numtest);
 
-ptnum = 100;
+ptnum = 200;
 step = int32(size(testcodes, 1) / ptnum);
 
 base_pr = zeros(ptnum, 2);
@@ -293,6 +293,7 @@ for i=1:length(testgroups)
     if method == 1
         % weighted distance ranking
         learn_dists = weightedHam(testsamp, testcodes, W', 1);
+%         learn_dists = svmdist(testsamp, testcodes, svmmodel, 1);
         [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
     end
     

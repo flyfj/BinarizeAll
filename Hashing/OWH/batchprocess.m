@@ -6,8 +6,8 @@ clear
 use_data = 1;
 code_type = 1;
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
-codes = [2];
-bits = [32];
+codes = [3];
+bits = [96];
 
 dataname = 'mnist';
 
