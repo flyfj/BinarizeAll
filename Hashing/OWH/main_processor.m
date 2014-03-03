@@ -43,10 +43,6 @@ if method == 2
     traincodes_un = traincodes;
     testcodes_un = testcodes;
 end
-
-load(uncodefile);
-traincodes_un = traincodes;
-testcodes_un = testcodes;
     
 load(codefile);
 
@@ -72,7 +68,7 @@ if method == 1
     disp('Generating training pairs...');
 
     if ~exist('sim_data', 'var')
-        sim_data = genSimData(testgroups, 'triplet', 7000);
+        sim_data = genSimData(testgroups, 'pair', 5000);
 %         sim_data2 = genSimData(testgroups, 'triplet', 2000);
 %         sim_data = [sim_data; sim_data2];
     end
@@ -88,7 +84,7 @@ if method == 1
 
     % now use relative attribute code
 
-    svm_type = 'ranksvm';
+    svm_type = 'normal';
 
     % construct parameters for svm code
     svm_opt.lin_cg = 1; % not use conjugate gradient
@@ -123,8 +119,8 @@ if method == 1
 
         % convert to -1 / 1
         code_dist_vecs = double(2*code_dist_vecs - 1);
-        imagesc(code_dist_vecs)
-        pause
+%         imagesc(code_dist_vecs)
+%         pause
 
         % construct ordering and similarity matrix: pair_num X sample_num
         O = zeros(triplet_num, size(code_dist_vecs, 1));
@@ -202,41 +198,41 @@ if method == 1
         length( find( pred_labels(poslabels, 1) == 1 ) ) / size(poslabels, 1)
 
         % test a query
-%         testid = 666;
-%         gtlabels = testgroups{testlabels(testid,1), 1};
-%         % compute difference vector with each testcode
-%         test_dist_vecs = repmat(testcodes(testid,:), size(testcodes, 1), 1);
-%         test_dist_vecs = abs(test_dist_vecs - testcodes) * 2 - 1;
-%         test_dist_vecs = double(test_dist_vecs);
-%         truelabels = -ones(length(testlabels), 1);
-%         truelabels(gtlabels) = 1;
-%         [pred_labels, accuracy, scores] = svmpredict(truelabels, test_dist_vecs, svmmodel);
-%         [poslabels, ~] = find( truelabels == 1 );
-%         length( find( pred_labels(poslabels, 1) == 1 ) ) / size(poslabels, 1)
-% 
-%         % use scores to simply evaluate ranking performance
-%         [scores_sorted, score_sorted_idx] = sort(scores, 1, 'descend');
-%         score_inters = zeros(2, size(testcodes, 1));
-%         for i=1:size(testcodes, 1)
-%             % intersection value
-%             inter_num = length( find( (testlabels(score_sorted_idx(1:i)) == testlabels(testid)) > 0) ); 
-%             % precision
-%             score_inters(1,i) = double(inter_num) / i;
-%             % recall
-%             score_inters(2,i) = double(inter_num) / length(gtlabels);
-%         end
-% 
-%         % draw precision curve
-%         close all
-%         xlabel('Recall')
-%         ylabel('Precision')
-%         hold on
-%         axis([0 1 0 1]);
-%         hold on
-%         plot(score_inters(2,:), score_inters(1,:), 'r-')
-%         hold on
-%         legend('Clf')
-%         pause
+        testid = 1534;
+        gtlabels = testgroups{testlabels(testid,1), 1};
+        % compute difference vector with each testcode
+        test_dist_vecs = repmat(testcodes(testid,:), size(testcodes, 1), 1);
+        test_dist_vecs = abs(test_dist_vecs - testcodes) * 2 - 1;
+        test_dist_vecs = double(test_dist_vecs);
+        truelabels = -ones(length(testlabels), 1);
+        truelabels(gtlabels) = 1;
+        [pred_labels, accuracy, scores] = svmpredict(truelabels, test_dist_vecs, svmmodel);
+        [poslabels, ~] = find( truelabels == 1 );
+        length( find( pred_labels(poslabels, 1) == 1 ) ) / size(poslabels, 1)
+
+        % use scores to simply evaluate ranking performance
+        [scores_sorted, score_sorted_idx] = sort(scores, 1, 'descend');
+        score_inters = zeros(2, size(testcodes, 1));
+        for i=1:size(testcodes, 1)
+            % intersection value
+            inter_num = length( find( (testlabels(score_sorted_idx(1:i)) == testlabels(testid)) > 0) ); 
+            % precision
+            score_inters(1,i) = double(inter_num) / i;
+            % recall
+            score_inters(2,i) = double(inter_num) / length(gtlabels);
+        end
+
+        % draw precision curve
+        close all
+        xlabel('Recall')
+        ylabel('Precision')
+        hold on
+        axis([0 1 0 1]);
+        hold on
+        plot(score_inters(2,:), score_inters(1,:), 'r-')
+        hold on
+        legend('Clf')
+        pause
 
     end
 
@@ -275,7 +271,7 @@ for i=1:length(testgroups)
     
     % process current code
     testlabel = i;
-    testsampids = randsample(testgroups{i}, 50);
+    testsampids = randsample(testgroups{i}, 10);
     testsamp = testcodes(testsampids, :);
     
     if method == 0

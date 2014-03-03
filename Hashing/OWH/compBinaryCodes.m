@@ -5,7 +5,7 @@
 clear
 
 datanames = {'dummay', 'cifar', 'mnist'};
-use_data = 2;
+use_data = 3;
 dataname = datanames{use_data};
 
 datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
@@ -30,8 +30,8 @@ codetypes{5,1} = 'iso'; codetypes{5,2} = '../unsupervised_hash_code/';
 codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
-codes = [4];
-bits = [16, 32, 48, 96, 128];
+codes = [1,2,3,5];
+bits = [64];
 
 binarize = 1;
 
