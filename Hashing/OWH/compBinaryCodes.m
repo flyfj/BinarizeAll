@@ -5,7 +5,7 @@
 clear
 
 datanames = {'dummay', 'cifar', 'mnist'};
-use_data = 3;
+use_data = 2;
 dataname = datanames{use_data};
 
 datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';

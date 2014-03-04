@@ -44,7 +44,11 @@ if method == 2
     testcodes_un = testcodes;
 end
     
-load(codefile);
+if strcmp(dataname, 'face') == 1
+    [traincodes, trainlabels, testcodes, testlabels] = loadfacecodes(codename, nbits, 1);
+else
+    load(codefile);
+end
 
 labels = unique(trainlabels);
 
@@ -68,7 +72,7 @@ if method == 1
     disp('Generating training pairs...');
 
     if ~exist('sim_data', 'var')
-        sim_data = genSimData(testgroups, 'pair', 5000);
+        sim_data = genSimData(traingroups, 'triplet', 6000);
 %         sim_data2 = genSimData(testgroups, 'triplet', 2000);
 %         sim_data = [sim_data; sim_data2];
     end
@@ -84,7 +88,7 @@ if method == 1
 
     % now use relative attribute code
 
-    svm_type = 'normal';
+    svm_type = 'ranksvm';
 
     % construct parameters for svm code
     svm_opt.lin_cg = 1; % not use conjugate gradient
@@ -106,12 +110,12 @@ if method == 1
         cnt = 1;
         for i=1:triplet_num
             % compute similar pair distance
-            code_dist_vecs(cnt,:) = abs( testcodes(sim_data(i,2), :) - testcodes(sim_data(i,4), :) );
+            code_dist_vecs(cnt,:) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,4), :) );
             cnt = cnt + 1;
-            code_dist_vecs(cnt,:) = abs( testcodes(sim_data(i,2), :) - testcodes(sim_data(i,6), :) );
+            code_dist_vecs(cnt,:) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,6), :) );
             sim_idx(i,:) = [cnt cnt-1];
             cnt = cnt + 1;
-            code_dist_vecs(cnt, :) = abs( testcodes(sim_data(i,2), :) - testcodes(sim_data(i,8), :) );
+            code_dist_vecs(cnt, :) = abs( traincodes(sim_data(i,2), :) - traincodes(sim_data(i,8), :) );
             ordered_idx(i,:) = [cnt cnt-2];
             cnt = cnt + 1;
 
@@ -198,7 +202,7 @@ if method == 1
         length( find( pred_labels(poslabels, 1) == 1 ) ) / size(poslabels, 1)
 
         % test a query
-        testid = 1534;
+        testid = 300;
         gtlabels = testgroups{testlabels(testid,1), 1};
         % compute difference vector with each testcode
         test_dist_vecs = repmat(testcodes(testid,:), size(testcodes, 1), 1);
@@ -257,7 +261,7 @@ imgsz = 32;
 %pickids = testlabels(1:numtest, :);
 % pickids = randsample(testgroups{1,1}, numtest);
 
-ptnum = 200;
+ptnum = 50;
 step = int32(size(testcodes, 1) / ptnum);
 
 base_pr = zeros(ptnum, 2);
@@ -267,11 +271,11 @@ whrank_pr = zeros(ptnum, 2);
 % W = w1;
 
 cnt = 0;    % count number of curves / samples
-for i=1:length(testgroups)
+for i=1:50:length(testgroups)
     
     % process current code
     testlabel = i;
-    testsampids = randsample(testgroups{i}, 10);
+    testsampids = randsample( testgroups{i}, 10 );
     testsamp = testcodes(testsampids, :);
     
     if method == 0

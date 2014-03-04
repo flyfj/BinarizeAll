@@ -2,11 +2,20 @@ function [ traincodes, trainlabels, testcodes, testlabels ] = loadfacecodes( cod
 %LOADFACECODES Summary of this function goes here
 %   load precomputed youtube face dataset codes
 
-datadir = 'data/face_codes/';
+datadir = 'C:\Users\jiefeng\Dropbox\hash_data\data/face_codes/';
 
-traincodefile = sprintf()
+traincodefile = sprintf('%s%s_train_%d.mat', datadir, codename, nbits);
+load(traincodefile);
+traincodes = Y;
 
-testcodefile = sprintf();
+testcodefile = sprintf('%s%s_test_%d.mat', datadir, codename, nbits);
+load(testcodefile);
+testcodes = tY;
+
+labelfile = sprintf('%slabels.mat', datadir);
+load(labelfile);
+trainlabels = traingnd;
+testlabels = testgnd;
 
 end
 
