@@ -55,11 +55,21 @@ labels = unique(trainlabels);
 % split data into train and test: 50-50
 traingroups = cell(length(labels), 1);
 testgroups = cell(length(labels), 1);
+big500 = 0;
+big1000 = 0;
 for i=1:length(labels)
     clsids = find(trainlabels == labels(i));
     traingroups{i,1} = clsids;
     clsids = find(testlabels == labels(i));
     testgroups{i,1} = clsids;
+    
+%     if(length(clsids) > 500)
+%         big500 = big500 + 1;
+%     end
+%         if(length(clsids) > 1000)
+%             big1000 = big1000 + 1;
+%         end
+%           
 end
 
 disp('Binary code loaded.');
@@ -261,7 +271,7 @@ imgsz = 32;
 %pickids = testlabels(1:numtest, :);
 % pickids = randsample(testgroups{1,1}, numtest);
 
-ptnum = 50;
+ptnum = 100;
 step = int32(size(testcodes, 1) / ptnum);
 
 base_pr = zeros(ptnum, 2);
@@ -271,11 +281,18 @@ whrank_pr = zeros(ptnum, 2);
 % W = w1;
 
 cnt = 0;    % count number of curves / samples
-for i=1:50:length(testgroups)
+for i=1:1%length(testgroups)
+    
+%     if ~(i==1 || i==2 || i==7)
+%         continue;
+%     end
+%     if length(testgroups{i}) <= 1000
+%         continue;
+%     end
     
     % process current code
     testlabel = i;
-    testsampids = randsample( testgroups{i}, 10 );
+    testsampids = randsample( testgroups{i}, 100 );
     testsamp = testcodes(testsampids, :);
     
     if method == 0
