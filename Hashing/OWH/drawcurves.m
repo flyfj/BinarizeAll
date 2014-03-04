@@ -1,24 +1,25 @@
 
 %% draw result curves
 
-dataname = 'cifar';
+dataname = 'mnist';
 datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
-codes = [1];
-bits = [32];
+codes = [2];
+bits = [32 48 64 96 128];
 
 drawBase = 1;
-drawWeighted = 1;
+drawWeighted = 0;
 drawwhrank = 0;
 
 colors = {'g', 'r', 'k', 'c', 'm'};
 
+legendnames = [];
 
-figure('Name', sprintf('PR Curves on %s using X bits', dataname));
-xlabel('Recall')
-ylabel('Precision')
+figure('Name', sprintf('PR Curves on %s using 32 bits', dataname));
+xlabel('Recall', 'FontSize', 13)
+ylabel('Precision', 'FontSize', 13)
 hold on
 axis([0,1,0,1]);
 hold on
@@ -34,7 +35,7 @@ for i=1:length(codes)
             prfile = sprintf('%s/res/%s_%s_%db_pr.mat', datadir, dataname, codename, bits(j));
             code_pr = load(prfile);
             code_pr = code_pr.pr;
-            plot(code_pr(:,2), code_pr(:,1), sprintf('%s-', colors{i}), 'LineWidth', 2)
+            plot(code_pr(:,2), code_pr(:,1), sprintf('%s-', colors{j}), 'LineWidth', 2, 'MarkerFaceColor', colors{i})
             hold on
         end
         
@@ -42,7 +43,7 @@ for i=1:length(codes)
             prfile = sprintf('%s/res/%s_%s_%db_pr_weighted.mat', datadir, dataname, codename, bits(j));
             code_pr = load(prfile);
             code_pr = code_pr.pr;
-            plot(code_pr(:,2), code_pr(:,1), sprintf('%sd-', colors{j}), 'LineWidth', 2)
+            plot(code_pr(:,2), code_pr(:,1), sprintf('%sd-', colors{j}), 'LineWidth', 2, 'MarkerFaceColor', colors{i})
             hold on
         end
         
@@ -65,7 +66,12 @@ for i=1:length(codes)
         end
         
     end
+    
+%     legendnames = [legendnames codenames{codes(i)} ' '];
+    
 end
+
+legend('SH', 'SH-Weighted', 'ITQ', 'ITQ-Weighted', 'LSH', 'LSH-Weighted', 'ISO', 'ISO-Weighted');
 
 pause
 close all

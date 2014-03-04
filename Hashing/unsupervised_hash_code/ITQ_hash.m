@@ -1,9 +1,11 @@
-  
+
+addpath(genpath('../OWH/'));
 load cifar_split;
+% [traindata, traingnd, testdata, testgnd] = loadTrainingData(3);
 [n,d] = size(traindata);
 tn = size(testdata,1);
 range = 100; 
-r = 48;
+r = 128;
 
 
 %% ITQ
@@ -37,7 +39,6 @@ clear R;
 Y = single(Y);
 save itq_48  Y W mvec;
 
-
 %% test
 %load itq_48;
 tep = find(Y<=0);
@@ -51,21 +52,21 @@ tB = compactbit(tY);
 time = toc;
 [time/tn]
 clear tB;
-tY = single(tY); 
+tY = single(tY);
 tep = find(tY<=0);
 tY(tep) = -1;
 clear tep;
 
-sim = Y*tY'; 
-[temp,order] = sort(sim,1,'descend');
+sim = tY*tY'; 
+[temp, order] = sort(sim,1,'descend');
 clear temp;
-H = traingnd(order);
+H = testgnd(order);
 clear order;
 
 ap = zeros(1,tn);
 pre = zeros(1,tn);
-interval = 500;
-pt_num = 1+floor(n/interval);
+interval = 50; % 500
+pt_num = 1+floor(tn/interval);
 prr = zeros(1,pt_num*2);
 for i = 1:tn
     h = double(H(:,i) == testgnd(i));

@@ -6,10 +6,10 @@ clear
 use_data = 1;
 code_type = 1;
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
-codes = [1];
-bits = [32];
+codes = [2];
+bits = [32 48 64 96 128];
 
-dataname = 'cifar';
+dataname = 'mnist';
 
 todraw = 0;
 
@@ -17,7 +17,7 @@ for i=1:length(codes)
     for j=1:length(bits)
         
         codename = codenames{codes(i)};
-        [base_pr, learn_pr] = main_processor(dataname, codename, bits(j), 1);
+        [base_pr, learn_pr] = main_processor(dataname, codename, bits(j), 0);
         
         if todraw == 1
             % draw pr curve

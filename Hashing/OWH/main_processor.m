@@ -50,9 +50,21 @@ else
     load(codefile);
 end
 
+% load('cifar_split.mat')
+% load('itq_48.mat');
+% tep = find(Y<=0);
+% Y(tep) = -1;
+% 
+% tn = size(testdata, 1);
+% tY = testdata*W-repmat(mvec,tn,1);
+% tY = (tY>0);
+% tY = single(tY);
+% tep = find(tY<=0);
+% tY(tep) = -1;
+
 labels = unique(trainlabels);
 
-% split data into train and test: 50-50
+%split data into train and test: 50-50
 traingroups = cell(length(labels), 1);
 testgroups = cell(length(labels), 1);
 big500 = 0;
@@ -82,7 +94,7 @@ if method == 1
     disp('Generating training pairs...');
 
     if ~exist('sim_data', 'var')
-        sim_data = genSimData(traingroups, 'triplet', 6000);
+        sim_data = genSimData(traingroups, 'triplet', 5000);
 %         sim_data2 = genSimData(testgroups, 'triplet', 2000);
 %         sim_data = [sim_data; sim_data2];
     end
@@ -255,6 +267,55 @@ if method == 1
 end
 
 %% evaluation
+% range = 100;
+% Y = 2*traincodes - 1;
+% tY = 2*testcodes - 1;
+% traingnd = trainlabels;
+% testgnd = testlabels;
+% n = size(traincodes, 1);
+% tn = size(testcodes, 1);
+% 
+% sim = Y*tY'; 
+% [temp, order] = sort(sim,1,'descend');
+% clear temp;
+% H = traingnd(order);
+% clear order;
+% 
+% ap = zeros(1,tn);
+% pre = zeros(1,tn);
+% interval = 500;
+% pt_num = 1+floor(n/interval);
+% prr = zeros(1,pt_num*2);
+% for i = 1:tn
+%     h = double(H(:,i) == testgnd(i));
+%     ind = find(h > 0);
+%     pn = length(ind);
+%     pre(i) = sum(h(1:range))/range;
+% %     if pn == 0
+% %         ap(i) = 0;
+% %     else
+% %         tep = 0;
+% %         for j = 1:pn
+% %             tep = tep+sum(h( 1:ind(j) ))/ind(j);
+% %         end
+% %         ap(i) = tep/pn;
+% %     end
+% %     clear ind;
+%    
+%     %% PR curve
+%     prr = prr+PR_new(h,interval);
+%     clear h;
+% end
+% prr = prr/tn;
+% % [r, mean(pre,2), mean(ap,2)]
+% 
+% itq_prr = prr;
+% plot(itq_prr(pt_num+1:end),itq_prr(1:pt_num),'b'); hold on; grid;
+% pause
+% 
+% return;
+
+
 
 showres = 0;
 % use weights and no weights to compute ranking list for one sample first
@@ -272,7 +333,7 @@ imgsz = 32;
 % pickids = randsample(testgroups{1,1}, numtest);
 
 ptnum = 100;
-step = int32(size(testcodes, 1) / ptnum);
+step = int32(size(traincodes, 1) / ptnum);
 
 base_pr = zeros(ptnum, 2);
 learn_pr = zeros(ptnum, 2);
@@ -281,11 +342,11 @@ whrank_pr = zeros(ptnum, 2);
 % W = w1;
 
 cnt = 0;    % count number of curves / samples
-for i=1:1%length(testgroups)
+for i=1:length(testgroups)
     
-%     if ~(i==1 || i==2 || i==7)
-%         continue;
-%     end
+    if ~(i==2 || i==1 || i==3)
+        continue;
+    end
 %     if length(testgroups{i}) <= 1000
 %         continue;
 %     end
@@ -323,7 +384,7 @@ for i=1:1%length(testgroups)
     dbids = testgroups{testlabel};
     
     % compute pr values
-    for k=1:size(testsamp,1)    % every sample
+    for k=1:size(testsamp,1)    % every test sample
         cnt = cnt + 1;
         
         for j=1:ptnum    % each top result level

@@ -1,5 +1,7 @@
 
-load cifar_split;
+addpath(genpath('../OWH/'));
+% load cifar_split;
+[traindata, traingnd, testdata, testgnd] = loadTrainingData(3);
 [n,d] = size(traindata);
 tn = size(testdata,1);
 range = 100;

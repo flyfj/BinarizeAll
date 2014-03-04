@@ -5,7 +5,7 @@
 clear
 
 datanames = {'dummay', 'cifar', 'mnist'};
-use_data = 2;
+use_data = 3;
 dataname = datanames{use_data};
 
 datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
@@ -30,8 +30,8 @@ codetypes{5,1} = 'iso'; codetypes{5,2} = '../unsupervised_hash_code/';
 codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
-codes = [1,2,3,5];
-bits = [64];
+codes = [2];
+bits = [16 32 48 64 96 128];
 
 binarize = 1;
 
@@ -42,9 +42,9 @@ for id=1:length(codes)
         codeid = codes(id);
         code_params.nbits = bits(j);
         if binarize == 1
-            savefile = sprintf('%sdata/%s_%s_%db.mat', datadir, dataname, codetypes{codeid,1}, bits(j));
+            savefile = sprintf('%sdata/%s_codes/%s_%s_%db.mat', datadir, dataname, dataname, codetypes{codeid,1}, bits(j));
         else
-            savefile = sprintf('%sdata/%s_%s_%db_un.mat', datadir, dataname, codetypes{codeid,1}, bits(j));
+            savefile = sprintf('%sdata/%s_codes/%s_%s_%db_un.mat', datadir, dataname, dataname, codetypes{codeid,1}, bits(j));
         end
         
         %code_type = 3;
@@ -98,22 +98,27 @@ for id=1:length(codes)
 
             meanv = mean(traindata,1);
             traindata = traindata - repmat(meanv, n, 1);
-            % PCA
-            [pc, l] = eigs(cov(traindata(:,:)), code_params.nbits);
-            traincodes = traindata * pc;
-            [~, R] = ITQ(traincodes, 50);
-            pc = pc*R;
-            meanv = meanv*pc;
-
+            cov = traindata'*traindata;
+            [U,V] = eig(cov);
+            clear cov
+            eigenvalue = diag(V)';
+            [eigenvalue, order] = sort(eigenvalue, 'descend');
+            W = U(:,order(1:code_params.nbits));
+            clear order
+            traincodes = traindata*W;
+            [temp, R] = ITQ(traincodes, 50);
+            W = W*R;
+            meanv = meanv*W;
             traincodes = traincodes*R;
             if binarize == 1
                 traincodes = single(traincodes>0);
             end
             
-            testcodes = testdata*pc - repmat(meanv, ntest, 1);
+            testcodes = testdata*W - repmat(meanv, ntest, 1);
             if binarize == 1
                 testcodes = single(testcodes>0);
             end
+            clear meanv W R
             
         end
         
@@ -305,6 +310,8 @@ for id=1:length(codes)
         else
             save(savefile, 'traincodes', 'trainlabels', 'testcodes', 'testlabels', 'SHparamNew');
         end
+        
+        clear traincodes testcodes
 
         disp(['Saved code to ' savefile]);
         
