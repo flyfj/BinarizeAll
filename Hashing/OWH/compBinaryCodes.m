@@ -8,7 +8,8 @@ datanames = {'dummay', 'cifar', 'mnist'};
 use_data = 2;
 dataname = datanames{use_data};
 
-datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
+% datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
+datadir = '';
 
 % load raw features
 [traindata, trainlabels, testdata, testlabels] = loadTrainingData(use_data);
@@ -30,7 +31,7 @@ codetypes{5,1} = 'iso'; codetypes{5,2} = '../unsupervised_hash_code/';
 codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
-codes = [2];
+codes = [1 2 3 5];
 bits = [16 32 64 96 128];
 
 binarize = 1;
@@ -80,16 +81,14 @@ for id=1:length(codes)
 
             % learn itq
             meanv = mean(traindata,1);
-            traindata = traindata - repmat(meanv, n, 1);
-            cov = traindata'*traindata;
+            X = traindata - repmat(meanv, n, 1);
+            cov = X'*X;
             [U,V] = eig(cov);
-            clear cov
             eigenvalue = diag(V)';
             [eigenvalue, order] = sort(eigenvalue, 'descend');
-            W = U(:,order(1:code_params.nbits));
-            clear order
-            traincodes = traindata*W;
-            [temp, R] = ITQ(traincodes, 50);
+            W = U(:, order(1:code_params.nbits));
+            traincodes = X*W;
+            [~, R] = ITQ(traincodes, 50);
             W = W*R;
             meanv = meanv*W;
             traincodes = traincodes*R;
@@ -102,6 +101,30 @@ for id=1:length(codes)
                 testcodes = single(testcodes>0);
             end
             clear meanv W R
+            
+            % test
+%             w1 = ones(code_params.nbits, 1);
+%             base_dists = weightedHam(testcodes, testcodes, w1', 0);
+%             [~, base_sorted_idx] = sort(base_dists, 2);
+%             nt = size(testcodes, 1);
+%             ranked_labels = testlabels(base_sorted_idx);
+%             interval = 20;
+%             pt_num = 1 + floor(nt/interval);
+%             prr = zeros(1, pt_num*2);
+%             for pi = 1:nt
+%                 h = double(ranked_labels(pi, :) == testlabels(pi));
+%                 ind = find(h > 0);
+%                 pn = length(ind); 
+% 
+%                 %% PR curve
+%                 prr = prr + PR_new(h', interval);
+%                 clear h;
+%             end
+% 
+%             prr = prr' ./ nt;
+%             plot(prr(pt_num+1:end), prr(1:pt_num), 'r-')
+%             grid on
+%             pause
             
         end
         
@@ -298,8 +321,6 @@ for id=1:length(codes)
         else
             save(savefile, 'traincodes', 'trainlabels', 'testcodes', 'testlabels', 'SHparamNew');
         end
-        
-        clear traincodes testcodes
 
         disp(['Saved code to ' savefile]);
         

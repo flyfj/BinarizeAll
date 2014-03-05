@@ -1,13 +1,13 @@
 
 %% draw result curves
 
-dataname = 'cifar';
-datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
+dataname = 'face';
+datadir = '';%'C:\Users\jiefeng\Dropbox\hash_data\';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
-codes = [2];
-bits = [16 32 48 96 128];
+codes = [1];
+bits = [96];
 
 drawBase = 1;
 drawWeighted = 1;
@@ -32,15 +32,15 @@ for i=1:length(codes)
         codename = codenames{codes(i)};
         
         if drawBase == 1
-            prfile = sprintf('%s/res/%s_%s_%db_pr.mat', datadir, dataname, codename, bits(j));
+            prfile = sprintf('%sres/%s_%s_%db_pr.mat', datadir, dataname, codename, bits(j));
             code_pr = load(prfile);
             code_pr = code_pr.pr;
-            plot(code_pr(:,2), code_pr(:,1), sprintf('%s-', colors{j}), 'LineWidth', 2, 'MarkerFaceColor', colors{i})
+            plot(code_pr(:,2), code_pr(:,1), sprintf('%s-', colors{i}), 'LineWidth', 2)
             hold on
         end
         
         if drawWeighted == 1
-            prfile = sprintf('%s/res/%s_%s_%db_pr_weighted.mat', datadir, dataname, codename, bits(j));
+            prfile = sprintf('%sres/%s_%s_%db_pr_weighted.mat', datadir, dataname, codename, bits(j));
             code_pr = load(prfile);
             code_pr = code_pr.pr;
             plot(code_pr(:,2), code_pr(:,1), sprintf('%sd-', colors{j}), 'LineWidth', 2, 'MarkerFaceColor', colors{i})

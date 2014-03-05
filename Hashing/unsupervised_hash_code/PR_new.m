@@ -14,7 +14,13 @@ cn = floor(n/k);
 pre = zeros(1,cn+1);
 rec = pre;
 
-pre(1) = 1/min(find( H(1:4*k)>0 ));
+% bug: handle no point
+id = min(find( H(1:4*k)>0 ));
+if isempty(id)
+    pre(1) = 1 / (4*k);
+else
+    pre(1) = 1 / id;
+end
 rec(1) = 0;
 for i = 1:cn
     range = i*k;

@@ -21,7 +21,8 @@ addpath(genpath('../unsupervised_hash_code/'));
 % nbits = 32;
 % method = 1;
 
-datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
+% datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
+datadir = '';
 
 disp(['Dataset: ' dataname '; Code: ' codename '; bits: ' num2str(nbits)]);
 
@@ -69,20 +70,49 @@ traingroups = cell(length(labels), 1);
 testgroups = cell(length(labels), 1);
 big500 = 0;
 big1000 = 0;
+big1500 = 0;
+big2000 = 0;
+newtestcodes = [];
+newtestlabels = [];
 for i=1:length(labels)
     clsids = find(trainlabels == labels(i));
     traingroups{i,1} = clsids;
     clsids = find(testlabels == labels(i));
-    testgroups{i,1} = clsids;
+    testgroups{i,1} = clsids(1:int32(length(clsids)/3));
+    newtestlabels = [newtestlabels; testlabels(testgroups{i,1})];
+    newtestcodes = [newtestcodes; testcodes(testgroups{i},:)];
     
-%     if(length(clsids) > 500)
-%         big500 = big500 + 1;
-%     end
-%         if(length(clsids) > 1000)
-%             big1000 = big1000 + 1;
-%         end
-%           
+    if(length(clsids) > 500)
+        big500 = big500 + 1;
+    end
+    if(length(clsids) > 1000)
+        big1000 = big1000 + 1;
+    end
+    if(length(clsids) > 1300)
+        big1500 = big1500 + 1;
+    end
+          
 end
+
+testlimit = 400;   % maximum size of testgroup to look at
+biggroup = 0;
+validcls = [];
+% form new groups
+if strcmp(dataname, 'face') == 1
+    for i=1:length(labels)
+        clsids = find(newtestlabels == labels(i));
+        if(length(clsids) > testlimit)
+            biggroup = biggroup + 1;
+            validcls = [validcls; i];
+        end
+        testgroups{i,1} = clsids;
+    end
+    
+    testcodes = newtestcodes;
+    testlabels = newtestlabels;
+    clear newtestcodes newtestlabels
+end
+
 
 disp('Binary code loaded.');
 
@@ -93,7 +123,7 @@ if method == 1
     disp('Generating training pairs...');
 
     if ~exist('sim_data', 'var')
-        sim_data = genSimData(traingroups, 'triplet', 5000);
+        sim_data = genSimData(traingroups, 'triplet', 5000, validcls);
 %         sim_data2 = genSimData(testgroups, 'triplet', 2000);
 %         sim_data = [sim_data; sim_data2];
     end
@@ -143,7 +173,7 @@ if method == 1
         end
 
         % convert to -1 / 1
-        code_dist_vecs = double(2*code_dist_vecs - 1);
+%         code_dist_vecs = double(2*code_dist_vecs - 1);
 %         imagesc(code_dist_vecs)
 %         pause
 
@@ -266,55 +296,8 @@ if method == 1
 end
 
 %% evaluation
-% range = 100;
-% Y = 2*traincodes - 1;
-% tY = 2*testcodes - 1;
-% traingnd = trainlabels;
-% testgnd = testlabels;
-% n = size(traincodes, 1);
-% tn = size(testcodes, 1);
-% 
-% sim = Y*tY'; 
-% [temp, order] = sort(sim,1,'descend');
-% clear temp;
-% H = traingnd(order);
-% clear order;
-% 
-% ap = zeros(1,tn);
-% pre = zeros(1,tn);
-% interval = 500;
-% pt_num = 1+floor(n/interval);
-% prr = zeros(1,pt_num*2);
-% for i = 1:tn
-%     h = double(H(:,i) == testgnd(i));
-%     ind = find(h > 0);
-%     pn = length(ind);
-%     pre(i) = sum(h(1:range))/range;
-% %     if pn == 0
-% %         ap(i) = 0;
-% %     else
-% %         tep = 0;
-% %         for j = 1:pn
-% %             tep = tep+sum(h( 1:ind(j) ))/ind(j);
-% %         end
-% %         ap(i) = tep/pn;
-% %     end
-% %     clear ind;
-%    
-%     %% PR curve
-%     prr = prr+PR_new(h,interval);
-%     clear h;
-% end
-% prr = prr/tn;
-% % [r, mean(pre,2), mean(ap,2)]
-% 
-% itq_prr = prr;
-% plot(itq_prr(pt_num+1:end),itq_prr(1:pt_num),'b'); hold on; grid;
-% pause
-% 
-% return;
 
-
+clear traincodes
 
 showres = 0;
 % use weights and no weights to compute ranking list for one sample first
@@ -331,110 +314,143 @@ imgsz = 32;
 %pickids = testlabels(1:numtest, :);
 % pickids = randsample(testgroups{1,1}, numtest);
 
-ptnum = 100;
-step = int32(size(testcodes, 1) / ptnum);
+% ptnum = 100;
+% step = int32(size(testcodes, 1) / ptnum);
+% 
+base_pr = [];
+learn_pr = [];
+% whrank_pr = zeros(ptnum, 2);
 
-base_pr = zeros(ptnum, 2);
-learn_pr = zeros(ptnum, 2);
-whrank_pr = zeros(ptnum, 2);
 
-
-cnt = 0;    % count number of curves / samples
+% collect samples
+testsamps = [];
+testsampslabels = [];
 for i=1:length(testgroups)
     
 %     if ~(i==9 || i==7)
 %         continue;
 %     end
-%     if length(testgroups{i}) <= 1000
-%         continue;
-%     end
+    if length(testgroups{i}) <= testlimit
+        continue;
+    end
     
     % process current code
-    testlabel = i;
-    testsampids = randsample( testgroups{i}, 50 );
-    testsamp = testcodes(testsampids, :);
-    
-    if method == 0
-        % base distance ranking
-        if strcmp(codename, 'mdsh') == 1
-            base_dists = hammingDistEfficientNew(testsamp, testcodes, SHparamNew);
-            [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2, 'descend');
-        else
-            base_dists = weightedHam(testsamp, testcodes, w1', 0);
-            [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
-        end
-        
-    end
-    
-    if method == 1
-        % weighted distance ranking
-        learn_dists = weightedHam(testsamp, testcodes, W', 1);
-%         learn_dists = svmdist(testsamp, testcodes, svmmodel, 1);
-        [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
-    end
-    
-    if method == 2
-        testsamp_un = testcodes_un(testsampids, :);
-        whrank_dists = whrankHam(testsamp_un, testsamp, testcodes, fstd);
-        [whrank_sorted_dist, whrank_sorted_idx] = sort(whrank_dists, 2);
-    end
-    
-    % compute pr values
-    for k=1:size(testsamp,1)    % every test sample
-        cnt = cnt + 1;
-        
-        for j=1:ptnum    % each top result level
-            
-            topnum = double( (j-1)*step + 1 );
-            
-            if method == 0
-                % intersection value
-                base_correct_num = length( find( (testlabels(base_sorted_idx(k, 1:topnum)) == i) > 0) ); 
-%                 base_correct_num = length( intersect( base_sorted_idx(k, 1:topnum), dbids ) );
-                % precision
-                base_pr(j, 1) = base_pr(j,1) + double(base_correct_num) / topnum;
-                % recall
-                base_pr(j, 2) = base_pr(j,2) + double(base_correct_num) / length(testgroups{testlabel});
-            end
-            
-            if method == 1
-                learn_correct_num = length( find( (testlabels(learn_sorted_idx(k, 1:topnum)) == i) > 0) ); 
-%                 learn_correct_num = length( intersect( learn_sorted_idx(k, 1:topnum), dbids ) );
-                learn_pr(j, 1) = learn_pr(j,1) + double(learn_correct_num) / topnum;
-                learn_pr(j, 2) = learn_pr(j,2) + double(learn_correct_num) / length(testgroups{testlabel});
-            end
-            
-            if method == 2
-                whrank_correct_num = length( find( (testlabels(whrank_sorted_idx(k, 1:topnum)) == i) > 0) ); 
-                whrank_pr(j, 1) = whrank_pr(j,1) + double(whrank_correct_num) / topnum;
-                whrank_pr(j, 2) = whrank_pr(j,2) + double(whrank_correct_num) / length(testgroups{testlabel});
-            end
-            
-        end
-    end
+%     testlabel = i;
+    testsampids = randsample( testgroups{i}, 10 );
+    testsamps = [testsamps; testcodes(testsampids, :)];
+    testsampslabels = [testsampslabels; testlabels(testsampids)];
     
     disp(sprintf('Computed %dth test group.', i));
     
 end
 
-base_pr = base_pr ./ cnt;
-learn_pr = learn_pr ./ cnt;
-whrank_pr = whrank_pr ./ cnt;
+ranked_labels = [];
 
 if method == 0
-    pr = base_pr;
+    % base distance ranking
+    if strcmp(codename, 'mdsh') == 1
+        base_dists = hammingDistEfficientNew(testsamps, testcodes, SHparamNew);
+        [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2, 'descend');
+    else
+        base_dists = weightedHam(testsamps, testcodes, w1', 0);
+        [base_sorted_dist, base_sorted_idx] = sort(base_dists, 2);
+        ranked_labels = testlabels(base_sorted_idx);
+    end
+
+end
+
+if method == 1
+    % weighted distance ranking
+    learn_dists = weightedHam(testsamps, testcodes, W', 0);
+%         learn_dists = svmdist(testsamp, testcodes, svmmodel, 1);
+    [learn_sorted_dist, learn_sorted_idx] = sort(learn_dists, 2);
+    ranked_labels = testlabels(learn_sorted_idx);
+end
+
+if method == 2
+    testsamp_un = testcodes_un(testsampids, :);
+    whrank_dists = whrankHam(testsamp_un, testsamp, testcodes, fstd);
+    [whrank_sorted_dist, whrank_sorted_idx] = sort(whrank_dists, 2);
+end
+
+ntest = size(testsamps, 1);
+
+interval = 500;
+pt_num = 1 + floor(size(testcodes,1)/interval);
+prr = zeros(1, pt_num*2);
+for pi = 1:ntest
+    h = double(ranked_labels(pi, :) == testsampslabels(pi));
+    if h(1) ~= 1
+        a = 2;
+    end
+    ind = find(h > 0);
+%     pn = length(ind);
+
+    prr = prr + PR_new(h', interval);
+    clear h;
+end
+
+prr = prr' ./ ntest;
+    
+if method == 0
+    pr = [prr(1:pt_num), prr(pt_num+1:end)];
+    base_pr = pr;
     save(basecurvefile, 'pr');
 end
 
 if method == 1
-    pr = learn_pr;
+    pr = [prr(1:pt_num), prr(pt_num+1:end)];
+    learn_pr = pr;
     save(learncurvefile, 'pr');
 end
 
 if method == 2
-    pr = whrank_pr;
+    pr = [prr(1:pt_num), prr(pt_num+1:end)];
     save(whrankcurvefile, 'pr');
 end
+    
+    % compute pr values
+%     for k=1:size(testsamp,1)    % every test sample
+%         cnt = cnt + 1;
+%         
+%         for j=1:ptnum    % each top result level
+%             
+%             topnum = double( (j-1)*step + 1 );
+%             
+%             if method == 0
+%                 % intersection value
+%                 base_correct_num = length( find( (testlabels(base_sorted_idx(k, 1:topnum)) == i) > 0) ); 
+% %                 base_correct_num = length( intersect( base_sorted_idx(k, 1:topnum), dbids ) );
+%                 % precision
+%                 base_pr(j, 1) = base_pr(j,1) + double(base_correct_num) / topnum;
+%                 % recall
+%                 base_pr(j, 2) = base_pr(j,2) + double(base_correct_num) / length(testgroups{testlabel});
+%             end
+%             
+%             if method == 1
+%                 learn_correct_num = length( find( (testlabels(learn_sorted_idx(k, 1:topnum)) == i) > 0) ); 
+% %                 learn_correct_num = length( intersect( learn_sorted_idx(k, 1:topnum), dbids ) );
+%                 learn_pr(j, 1) = learn_pr(j,1) + double(learn_correct_num) / topnum;
+%                 learn_pr(j, 2) = learn_pr(j,2) + double(learn_correct_num) / length(testgroups{testlabel});
+%             end
+%             
+%             if method == 2
+%                 whrank_correct_num = length( find( (testlabels(whrank_sorted_idx(k, 1:topnum)) == i) > 0) ); 
+%                 whrank_pr(j, 1) = whrank_pr(j,1) + double(whrank_correct_num) / topnum;
+%                 whrank_pr(j, 2) = whrank_pr(j,2) + double(whrank_correct_num) / length(testgroups{testlabel});
+%             end
+%             
+%         end
+%     end
+    
+
+    
+
+% base_pr = base_pr ./ cnt;
+% learn_pr = learn_pr ./ cnt;
+% whrank_pr = whrank_pr ./ cnt;
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
