@@ -1,16 +1,16 @@
 
 %% draw result curves
 
-dataname = 'mnist';
+dataname = 'cifar';
 datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
 codes = [2];
-bits = [32 48 64 96 128];
+bits = [16 32 48 96 128];
 
 drawBase = 1;
-drawWeighted = 0;
+drawWeighted = 1;
 drawwhrank = 0;
 
 colors = {'g', 'r', 'k', 'c', 'm'};

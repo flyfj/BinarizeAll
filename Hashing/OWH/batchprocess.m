@@ -7,9 +7,9 @@ use_data = 1;
 code_type = 1;
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 codes = [2];
-bits = [32 48 64 96 128];
+bits = [16 32 64 96 128];
 
-dataname = 'mnist';
+dataname = 'cifar';
 
 todraw = 0;
 

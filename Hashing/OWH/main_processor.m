@@ -88,7 +88,6 @@ disp('Binary code loaded.');
 
 
 
-
 %% generate similarity pairs
 if method == 1
     disp('Generating training pairs...');
@@ -113,7 +112,7 @@ if method == 1
     svm_type = 'ranksvm';
 
     % construct parameters for svm code
-    svm_opt.lin_cg = 1; % not use conjugate gradient
+    svm_opt.lin_cg = 0; % not use conjugate gradient
     svm_opt.iter_max_Newton = 200;   % Maximum number of Newton steps
     svm_opt.prec = 0.0000000001;    %   prec: Stopping criterion
     w_0 = ones(1, code_params.nbits);   % initial weights
@@ -333,27 +332,26 @@ imgsz = 32;
 % pickids = randsample(testgroups{1,1}, numtest);
 
 ptnum = 100;
-step = int32(size(traincodes, 1) / ptnum);
+step = int32(size(testcodes, 1) / ptnum);
 
 base_pr = zeros(ptnum, 2);
 learn_pr = zeros(ptnum, 2);
 whrank_pr = zeros(ptnum, 2);
 
-% W = w1;
 
 cnt = 0;    % count number of curves / samples
 for i=1:length(testgroups)
     
-    if ~(i==2 || i==1 || i==3)
-        continue;
-    end
+%     if ~(i==9 || i==7)
+%         continue;
+%     end
 %     if length(testgroups{i}) <= 1000
 %         continue;
 %     end
     
     % process current code
     testlabel = i;
-    testsampids = randsample( testgroups{i}, 100 );
+    testsampids = randsample( testgroups{i}, 50 );
     testsamp = testcodes(testsampids, :);
     
     if method == 0
@@ -381,8 +379,6 @@ for i=1:length(testgroups)
         [whrank_sorted_dist, whrank_sorted_idx] = sort(whrank_dists, 2);
     end
     
-    dbids = testgroups{testlabel};
-    
     % compute pr values
     for k=1:size(testsamp,1)    % every test sample
         cnt = cnt + 1;
@@ -398,20 +394,20 @@ for i=1:length(testgroups)
                 % precision
                 base_pr(j, 1) = base_pr(j,1) + double(base_correct_num) / topnum;
                 % recall
-                base_pr(j, 2) = base_pr(j,2) + double(base_correct_num) / length(dbids);
+                base_pr(j, 2) = base_pr(j,2) + double(base_correct_num) / length(testgroups{testlabel});
             end
             
             if method == 1
                 learn_correct_num = length( find( (testlabels(learn_sorted_idx(k, 1:topnum)) == i) > 0) ); 
 %                 learn_correct_num = length( intersect( learn_sorted_idx(k, 1:topnum), dbids ) );
                 learn_pr(j, 1) = learn_pr(j,1) + double(learn_correct_num) / topnum;
-                learn_pr(j, 2) = learn_pr(j,2) + double(learn_correct_num) / length(dbids);
+                learn_pr(j, 2) = learn_pr(j,2) + double(learn_correct_num) / length(testgroups{testlabel});
             end
             
             if method == 2
                 whrank_correct_num = length( find( (testlabels(whrank_sorted_idx(k, 1:topnum)) == i) > 0) ); 
                 whrank_pr(j, 1) = whrank_pr(j,1) + double(whrank_correct_num) / topnum;
-                whrank_pr(j, 2) = whrank_pr(j,2) + double(whrank_correct_num) / length(dbids);
+                whrank_pr(j, 2) = whrank_pr(j,2) + double(whrank_correct_num) / length(testgroups{testlabel});
             end
             
         end

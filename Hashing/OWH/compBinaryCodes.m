@@ -5,7 +5,7 @@
 clear
 
 datanames = {'dummay', 'cifar', 'mnist'};
-use_data = 3;
+use_data = 2;
 dataname = datanames{use_data};
 
 datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
@@ -22,7 +22,7 @@ disp('Computing binary code for features...');
 
 % code name | code path
 codetypes = cell(6,2);
-codetypes{1,1} = 'sh'; codetypes{1,2} = '../SH/';
+codetypes{1,1} = 'sh'; codetypes{1,2} = '../unsupervised_hash_code/';
 codetypes{2,1} = 'itq'; codetypes{2,2} = '../unsupervised_hash_code/';
 codetypes{3,1} = 'lsh'; codetypes{3,2} = '../unsupervised_hash_code/';
 codetypes{4,1} = 'mdsh'; codetypes{4,2} = '../unsupervised_hash_code/';
@@ -31,7 +31,7 @@ codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
 codes = [2];
-bits = [16 32 48 64 96 128];
+bits = [16 32 64 96 128];
 
 binarize = 1;
 
@@ -72,30 +72,13 @@ for id=1:length(codes)
                 testcodes = single(testcodes > 0);
             end
             
+            clear sh_params
+            
         end
         
         if codeid == 2
 
             % learn itq
-%             XX = traindata;
-%             sampleMean = mean(XX,1);
-%             XX = (XX - repmat(sampleMean,size(XX,1),1));
-%             % PCA
-%             [pc, l] = eigs(cov(XX(:,:)),code_params.nbits);
-%             XX = XX * pc;
-%             % ITQ
-%             [~, R] = ITQ(XX(:,:),50);
-%             XX = XX*R;
-%             traincodes = zeros(size(XX));
-%             traincodes(XX>=0) = 1;
-%             traincodes = compactbit(traincodes>0);
-%             traincodes_str = [];
-%             for i=1:size(traincodes, 2)
-%                 traincodes_str = [traincodes_str dec2bin(traincodes(:,i), 8)];
-%             end
-%             traincodes = traincodes_str - '0';
-%             traincodes = single(traincodes);
-
             meanv = mean(traindata,1);
             traindata = traindata - repmat(meanv, n, 1);
             cov = traindata'*traindata;
@@ -154,6 +137,8 @@ for id=1:length(codes)
                 testcodes = single(testcodes > 0);
             end
             
+            clear lsh_params
+            
         end
         
         if codeid == 4
@@ -184,6 +169,7 @@ for id=1:length(codes)
             traindata = traindata - repmat(meanv,n,1);
             cov = traindata' * traindata;
             [U,V] = eig(cov);
+            clear cov
             eigenvalue = diag(V)';
             [eigenvalue,order] = sort(eigenvalue, 'descend');
             W = U(:,order(1:code_params.nbits));
@@ -201,6 +187,8 @@ for id=1:length(codes)
             if binarize == 1
                 testcodes = single(testcodes > 0);
             end
+            
+            clear W meanv
             
         end
         
