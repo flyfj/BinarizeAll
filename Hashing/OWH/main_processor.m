@@ -94,7 +94,7 @@ for i=1:length(labels)
           
 end
 
-testlimit = 400;   % maximum size of testgroup to look at
+testlimit = 550;   % maximum size of testgroup to look at
 biggroup = 0;
 validcls = [];
 % form new groups
@@ -375,14 +375,11 @@ end
 
 ntest = size(testsamps, 1);
 
-interval = 500;
+interval = 100;
 pt_num = 1 + floor(size(testcodes,1)/interval);
 prr = zeros(1, pt_num*2);
 for pi = 1:ntest
     h = double(ranked_labels(pi, :) == testsampslabels(pi));
-    if h(1) ~= 1
-        a = 2;
-    end
     ind = find(h > 0);
 %     pn = length(ind);
 

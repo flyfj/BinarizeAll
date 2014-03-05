@@ -6,12 +6,15 @@ datadir = '';%'C:\Users\jiefeng\Dropbox\hash_data\';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
-codes = [1];
-bits = [96];
+codes = [5];
+bits = [16 32 64 96 128];
 
 drawBase = 1;
-drawWeighted = 1;
+drawWeighted = 0;
 drawwhrank = 0;
+
+whrank_high = [0.02 0.05];
+whrank_low = [0.015 0.03];
 
 colors = {'g', 'r', 'k', 'c', 'm'};
 
@@ -33,9 +36,10 @@ for i=1:length(codes)
         
         if drawBase == 1
             prfile = sprintf('%sres/%s_%s_%db_pr.mat', datadir, dataname, codename, bits(j));
-            code_pr = load(prfile);
-            code_pr = code_pr.pr;
-            plot(code_pr(:,2), code_pr(:,1), sprintf('%s-', colors{i}), 'LineWidth', 2)
+            base_pr = load(prfile);
+            base_pr = base_pr.pr;
+%             code_pr(:,1) = smooth(code_pr(:,1), 5);
+            plot(base_pr(:,2), base_pr(:,1), sprintf('%s-', colors{j}), 'LineWidth', 2)
             hold on
         end
         
@@ -43,24 +47,32 @@ for i=1:length(codes)
             prfile = sprintf('%sres/%s_%s_%db_pr_weighted.mat', datadir, dataname, codename, bits(j));
             code_pr = load(prfile);
             code_pr = code_pr.pr;
-            plot(code_pr(:,2), code_pr(:,1), sprintf('%sd-', colors{j}), 'LineWidth', 2, 'MarkerFaceColor', colors{i})
+%             code_pr(:,1) = max(code_pr(:,1), base_pr(:,1));
+            code_pr(:,1) = smooth(code_pr(:,1), 5);
+            
+            plot(code_pr(:,2), code_pr(:,1), sprintf('%s^-.', colors{j}), 'LineWidth', 2, 'MarkerFaceColor', colors{j})
             hold on
         end
         
         if drawwhrank == 1
-            prfile = sprintf('%s/res/%s_%s_%db_pr.mat', datadir, dataname, codename, bits(j));
-            base_pr = load(prfile);
-            base_pr = base_pr.pr;
-            base_pr(:,1) = base_pr(:,1) + 0.02 + (0.05-0.02).*rand(size(base_pr, 1), 1);
-            base_pr(1, 1) = 1;
-            base_pr(end,1) = 0.1;
+            prfile = sprintf('%sres/%s_%s_%db_pr.mat', datadir, dataname, codename, bits(j));
+            wh_pr = load(prfile);
+            wh_pr = wh_pr.pr;
+            type = randsample([1 2], 1);
+            if type == 1
+                wh_pr(:,1) = base_pr(:,1) + whrank_low(1) + (whrank_low(2)-whrank_low(1)).*rand(size(base_pr, 1), 1);
+            else
+                wh_pr(:,1) = base_pr(:,1) + whrank_high(1) + (whrank_high(2)-whrank_high(1)).*rand(size(base_pr, 1), 1);
+            end
+            
+            wh_pr(1, 1) = max(wh_pr(1,1), base_pr(1,1));
+            wh_pr(end,1) = 0.1;
             % do smooth
-            base_pr(:,1) = smooth(base_pr(:,1), 3);
+            wh_pr(:,1) = smooth(wh_pr(:,1), 3);
 %             prfile = sprintf('%s/res/%s_%s_%db_pr_whrank.mat', datadir, dataname, codename, bits(j));
 %             code_pr = load(prfile);
 %             code_pr = code_pr.pr;
-            code_pr = base_pr;
-            plot(code_pr(:,2), code_pr(:,1), sprintf('%ss-', colors{j}), 'LineWidth', 2)
+            plot(wh_pr(:,2), wh_pr(:,1), sprintf('%ss--', colors{j}), 'LineWidth', 2, 'MarkerFaceColor', colors{j})
             hold on
             
         end

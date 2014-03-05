@@ -6,8 +6,8 @@ clear
 use_data = 1;
 code_type = 1;
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
-codes = [1];
-bits = [32 64 96 128];
+codes = [2 3 5];
+bits = [16 32 64 96 128];
 
 dataname = 'face';
 
