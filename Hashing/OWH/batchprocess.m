@@ -6,10 +6,10 @@ clear
 use_data = 1;
 code_type = 1;
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
-codes = [1 2 3 5];
+codes = [2];
 bits = [32];
 
-dataname = 'cifar';
+dataname = 'mnist';
 
 todraw = 0;
 

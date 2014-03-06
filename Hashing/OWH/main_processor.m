@@ -326,16 +326,16 @@ testsamps = [];
 testsampslabels = [];
 for i=1:length(testgroups)
     
-    if ~(i==9 || i==7)
-        continue;
-    end
+%     if ~(i==9 || i==7)
+%         continue;
+%     end
 %     if length(testgroups{i}) <= testlimit
 %         continue;
 %     end
     
     % process current code
 %     testlabel = i;
-    testsampids = randsample( testgroups{i}, 50 );
+    testsampids = testgroups{i};%randsample( testgroups{i}, 50 );
     testsamps = [testsamps; testcodes(testsampids, :)];
     testsampslabels = [testsampslabels; testlabels(testsampids)];
     
@@ -376,7 +376,7 @@ end
 
 ntest = size(testsamps, 1);
 
-interval = 10;
+interval = 500;
 ap = zeros(1,ntest);
 pre = zeros(1,ntest);
 pt_num = 1 + floor(size(testcodes,1)/interval);
