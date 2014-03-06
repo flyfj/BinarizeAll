@@ -8,7 +8,7 @@ function [base_pr, learn_pr] = main_processor(dataname, codename, nbits, method)
 % 3. learn weights
 % 4. evaluation
 
-% method 0: base code; 1: learn weighted; 2: whrank
+% method 0: base code; 1: learn weighted; 2: whrank; 3: weighted online
 
 
 %% load binary codes
@@ -199,17 +199,16 @@ if method == 1
 %         W = ranksvm(code_dist_vecs, O, C_O', w_0', svm_opt); 
 
         % online mode
-
-    %     W = w_0';
-    %     step = 1000;
-    %     for id=1:step:size(O,1)-step
-    %         tic
-    %         curO = O(id:id+step,:);
-    %         curS = S(id:id+step,:);
-    %         W = ranksvm_with_sim(code_dist_vecs, curO, curS, C_O(1,id:id+step)', C_S(1,id:id+step)', W, svm_opt);
-    %         toc
-    %         %disp(['Iter: ' num2str(id)]);
-    %     end
+%         W = w_0';
+%         step = 1000;
+%         for id=1:step:size(O,1)-step
+%             tic
+%             curO = O(id:id+step,:);
+%             curS = S(id:id+step,:);
+%             W = ranksvm_with_sim(code_dist_vecs, curO, curS, C_O(1,id:id+step)', C_S(1,id:id+step)', W, svm_opt);
+%             toc
+%             %disp(['Iter: ' num2str(id)]);
+%         end
 
         W = ranksvm_with_sim(code_dist_vecs, O, S, C_O', C_S', w_0', svm_opt);
         %W = weightLearnerRank(w_0', code_dist_vecs, ordered_idx);
@@ -325,11 +324,11 @@ learn_pr = [];
 % collect samples
 testsamps = [];
 testsampslabels = [];
-for i=1:4%length(testgroups)
+for i=1:length(testgroups)
     
-%     if ~(i==9 || i==7)
-%         continue;
-%     end
+    if ~(i==9 || i==7)
+        continue;
+    end
 %     if length(testgroups{i}) <= testlimit
 %         continue;
 %     end
@@ -377,7 +376,7 @@ end
 
 ntest = size(testsamps, 1);
 
-interval = 100;
+interval = 10;
 ap = zeros(1,ntest);
 pre = zeros(1,ntest);
 pt_num = 1 + floor(size(testcodes,1)/interval);
@@ -386,17 +385,17 @@ for pi = 1:ntest
     h = double(ranked_labels(pi, :) == testsampslabels(pi));
     ind = find(h > 0);
     pn = length(ind);
-    pre(i) = sum(h(1:range))/range;
-     if pn == 0
-     ap(i) = 0;
-     else
-     tep = 0;
-    for j = 1:pn
-    tep = tep+sum(h( 1:ind(j) ))/ind(j);
-    end
-    ap(i) = tep/pn;
-         end
-    clear ind
+%     pre(i) = sum(h(1:range))/range;
+%      if pn == 0
+%      ap(i) = 0;
+%      else
+%      tep = 0;
+%     for j = 1:pn
+%     tep = tep+sum(h( 1:ind(j) ))/ind(j);
+%     end
+%     ap(i) = tep/pn;
+%          end
+%     clear ind
 
     prr = prr + PR_new(h', interval);
     clear h;
