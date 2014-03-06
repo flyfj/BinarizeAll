@@ -1,12 +1,12 @@
 clear
 
 addpath(genpath('../OWH/'));
-load cifar_split;
-% [traindata, traingnd, testdata, testgnd] = loadTrainingData(3);
+% load cifar_split;
+[traindata, traingnd, testdata, testgnd] = loadTrainingData(3);
 [n,d] = size(traindata);
 tn = size(testdata,1);
 range = 100; 
-r = 64;
+r = 32;
 
 
 %% ITQ

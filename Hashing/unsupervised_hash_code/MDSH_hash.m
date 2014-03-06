@@ -1,16 +1,23 @@
 
 load cifar_split;
+addpath('../OWH/');
+% [traindata, traingnd, testdata, testgnd] = loadTrainingData(3);
+
 [n,d] = size(traindata);
 tn = size(testdata,1);
 range = 100; 
-r = 48;
+r = 32;
 Sigma = 0.4;
+
+dataname = 'mnist';
+savefile = sprintf('%s_mdsh_%db_pr.mat', dataname, r);
 
 
 %% MDSH
 tic
 SHparamNew.nbits = r; % number of bits to code each sample
 SHparamNew.sigma=Sigma; % Sigma for the affinity. Different codes for different sigmas!
+% SHparamNew.doPCA = 0;
 SHparamNew = trainMDSH(traindata, SHparamNew);
 [B,Y] = compressMDSH(traindata, SHparamNew);
 time = toc;
@@ -73,5 +80,10 @@ prr = prr/tn;
 [r, mean(pre,2), mean(ap,2)]
 
 mdsh_prr = prr;
+axis([0, 1, 0, 1]);
+hold on
 plot(mdsh_prr(pt_num+1:end),mdsh_prr(1:pt_num),'b'); hold on; grid;
+
+pr = [mdsh_prr(1:pt_num)', mdsh_prr(pt_num+1:end)'];
+save(savefile, 'pr');
 

@@ -31,7 +31,7 @@ codetypes{5,1} = 'iso'; codetypes{5,2} = '../unsupervised_hash_code/';
 codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 
 % extract all kinds of codes
-codes = [1 2 3 5];
+codes = [4];
 bits = [16 32 64 96 128];
 
 binarize = 0;
@@ -174,14 +174,14 @@ for id=1:length(codes)
             [~, traincodes] = compressMDSH(traindata, SHparamNew);
             if binarize == 1
                 traincodes = sign(traincodes);
+%                 traincodes = single(traincodes > 0);
             end
-%             traincodes = single(traincodes > 0);
-            
+
             [~, testcodes] = compressMDSH(testdata, SHparamNew);
             if binarize == 1
                 testcodes = sign(testcodes);
+%                 testcodes = single(testcodes > 0);
             end
-%             testcodes = single(testcodes > 0);
 
         end
         
