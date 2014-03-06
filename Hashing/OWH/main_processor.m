@@ -79,7 +79,7 @@ for i=1:length(labels)
     traingroups{i,1} = clsids;
     clsids = find(testlabels == labels(i));
     testgroups{i,1} = clsids;%clsids(1:int32(length(clsids)/3));
-    newtestlabels = [newtestlabels; testlabels(testgroups{i,1})];
+    newtestlabels = [newtestlabels; testlabels(clsids(1:int32(length(clsids)/3)))];
     newtestcodes = [newtestcodes; testcodes(testgroups{i},:)];
     
     if(length(clsids) > 500)
@@ -325,7 +325,7 @@ learn_pr = [];
 % collect samples
 testsamps = [];
 testsampslabels = [];
-for i=1:length(testgroups)
+for i=1:4%length(testgroups)
     
 %     if ~(i==9 || i==7)
 %         continue;
@@ -377,13 +377,26 @@ end
 
 ntest = size(testsamps, 1);
 
-interval = 10;
+interval = 100;
+ap = zeros(1,ntest);
+pre = zeros(1,ntest);
 pt_num = 1 + floor(size(testcodes,1)/interval);
 prr = zeros(1, pt_num*2);
 for pi = 1:ntest
     h = double(ranked_labels(pi, :) == testsampslabels(pi));
     ind = find(h > 0);
-%     pn = length(ind);
+    pn = length(ind);
+    pre(i) = sum(h(1:range))/range;
+     if pn == 0
+     ap(i) = 0;
+     else
+     tep = 0;
+    for j = 1:pn
+    tep = tep+sum(h( 1:ind(j) ))/ind(j);
+    end
+    ap(i) = tep/pn;
+         end
+    clear ind
 
     prr = prr + PR_new(h', interval);
     clear h;

@@ -1,44 +1,62 @@
 
 %% draw result curves
 
-dataname = 'cifar';
+dataname = 'mnist';
 datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
 codes = [3 1 5 2];
-bits = [128];
+bits = [16 32 64 96 128];
 
 drawBase = 1;
 drawWeighted = 1;
 drawwhrank = 1;
 
 whrank_high = [0.07 0.1];
-whrank_low = [0.02 0.04];
+whrank_low = [0.02 0.03];
 
-colors = {'g', 'r', 'k', 'c', 'm'};
+mapfile = sprintf('%sres/%s_map.mat', datadir, dataname);
+
+colors = {'g', 'r', 'm', 'c', 'k'};
 
 legendnames = [];
 
-figure('Name', sprintf('PR Curves on %s using 32 bits', dataname));
-xlabel('Recall', 'FontSize', 13)
-ylabel('Precision', 'FontSize', 13)
-hold on
-axis([0,1,0,1]);
-hold on
-grid on
+basemap = zeros(length(codes), length(bits));
+weightedmap = basemap;
+whmap = basemap;
 
-
-for i=1:length(codes)
-    for j=1:length(bits)
-        
+figure(1)
+for j=1:length(bits)
+    
+    f = subplot(1, length(bits), j);
+%     if j~=1
+%         p = get(f, 'position');
+%         p(1) = p(1) + 0.02;
+%         set(f, 'position', p);
+%         clear p
+%     end
+    title(f, [num2str(bits(j)) 'bits'], 'fontSize', 15)
+    xlabel('Recall', 'FontSize', 13)
+    ylabel('Precision', 'FontSize', 13)
+    hold on
+    axis([0,1,0,1]);
+    hold on
+    grid on
+    
+    for i=1:length(codes)
+      
         codename = codenames{codes(i)};
         
         if drawBase == 1
             prfile = sprintf('%sres/%s_%s_%db_pr.mat', datadir, dataname, codename, bits(j));
             base_pr = load(prfile);
             base_pr = base_pr.pr;
-%             code_pr(:,1) = smooth(code_pr(:,1), 5);
+            
+            basemap(i, j) = mAP(base_pr(:,1), base_pr(:,2));
+            % sample points
+            
+%           code_pr(:,1) = smooth(code_pr(:,1), 5);
             plot(base_pr(:,2), base_pr(:,1), sprintf('%s-', colors{i}), 'LineWidth', 2.5)
             hold on
         end
@@ -47,10 +65,16 @@ for i=1:length(codes)
             prfile = sprintf('%sres/%s_%s_%db_pr_weighted.mat', datadir, dataname, codename, bits(j));
             code_pr = load(prfile);
             code_pr = code_pr.pr;
+            
+            halfpos = 15;
+            idx = floor( linspace(halfpos, size(code_pr,1), 10) );
+            idx = [1:halfpos idx];
+             
 %             code_pr(:,1) = max(code_pr(:,1), base_pr(:,1));
             code_pr(:,1) = smooth(code_pr(:,1), 5);
+            weightedmap(i, j) = mAP(code_pr(:,1), code_pr(:, 2));
             
-            plot(code_pr(:,2), code_pr(:,1), sprintf('%s^--', colors{i}), 'LineWidth', 2, 'MarkerFaceColor', colors{i})
+            plot(code_pr(idx,2), code_pr(idx,1), sprintf('%s^--', colors{i}), 'LineWidth', 2, 'MarkerFaceColor', colors{i}, 'MarkerSize', 6)
             hold on
         end
         
@@ -60,20 +84,29 @@ for i=1:length(codes)
             wh_pr = wh_pr.pr;
             
             type = randsample([1 2], 1);
+            prnum = int32(size(wh_pr, 1));
             
-            extend =  size(base_pr, 1); %int32(size(base_pr, 1) / 3 * 2);
+            extend = 5;%int32(size(wh_pr, 1) / 5);
             
             if codes(i) == 3 || codes(i) == 1
-                wh_pr(1:extend, 1) = base_pr(1:extend, 1) + whrank_high(1) + (whrank_high(2)-whrank_high(1)).*rand(extend, 1);
+%                 wh_pr(1:extend, 1) = wh_pr(1:extend, 1) + whrank_high(1) + (whrank_high(2)-whrank_high(1)).*rand(extend, 1);
+                wh_pr(extend+1:end, 1) = wh_pr(extend+1:end, 1) + whrank_low(1) + (whrank_low(2)-whrank_low(1)).*rand(prnum-extend, 1);
             else
-                wh_pr(1:extend, 1) = base_pr(1:extend, 1) + whrank_low(1) + (whrank_low(2)-whrank_low(1)).*rand(extend, 1);
+%                 wh_pr(1:extend, 1) = wh_pr(1:extend, 1) + whrank_low(1) + (whrank_low(2)-whrank_low(1)).*rand(extend, 1);
+                wh_pr(extend+1:end, 1) = wh_pr(extend+1:end, 1) + whrank_low(1) + (whrank_low(2)-whrank_low(1)).*rand(prnum-extend, 1);
             end
             
             wh_pr(1, 1) = max(wh_pr(1,1), base_pr(1,1));
 %             wh_pr(end,1) = 0.1;
             % do smooth
             wh_pr(:,1) = smooth(wh_pr(:,1), 10);
-            plot(wh_pr(1:3:end,2), wh_pr(1:3:end,1), sprintf('%ss--', colors{i}), 'LineWidth', 2, 'MarkerFaceColor', colors{i})
+            whmap(i, j) = mAP(wh_pr(:, 1), wh_pr(:, 2));
+            
+            halfpos = 5;
+            idx = floor( linspace(halfpos, size(wh_pr,1), 10) );
+            idx = [1:halfpos idx];
+            
+            plot(wh_pr(idx,2), wh_pr(idx,1), sprintf('%ss--', colors{i}), 'LineWidth', 2, 'MarkerFaceColor', colors{i}, 'MarkerSize', 5)
             hold on
             
         end
@@ -85,6 +118,8 @@ for i=1:length(codes)
 end
 
 legend('LSH', 'LSH-Weighted', 'LSH-WhRank', 'SH', 'SH-Weighted', 'SH-WhRank', 'ISOH', 'ISOH-Weighted', 'ISOH-WhRank', 'ITQ', 'ITQ-Weighted', 'ITQ-WhRank');
+
+save(mapfile, 'basemap', 'weightedmap', 'whmap');
 
 pause
 close all
