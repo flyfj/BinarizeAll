@@ -1,20 +1,20 @@
 
 %% draw result curves
 
-dataname = 'face';
-datadir = '';%'C:\Users\jiefeng\Dropbox\hash_data\';
+dataname = 'cifar';
+datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
-codes = [5];
-bits = [16 32 64 96 128];
+codes = [3 1 5 2];
+bits = [128];
 
 drawBase = 1;
-drawWeighted = 0;
-drawwhrank = 0;
+drawWeighted = 1;
+drawwhrank = 1;
 
-whrank_high = [0.02 0.05];
-whrank_low = [0.015 0.03];
+whrank_high = [0.07 0.1];
+whrank_low = [0.02 0.04];
 
 colors = {'g', 'r', 'k', 'c', 'm'};
 
@@ -39,7 +39,7 @@ for i=1:length(codes)
             base_pr = load(prfile);
             base_pr = base_pr.pr;
 %             code_pr(:,1) = smooth(code_pr(:,1), 5);
-            plot(base_pr(:,2), base_pr(:,1), sprintf('%s-', colors{j}), 'LineWidth', 2)
+            plot(base_pr(:,2), base_pr(:,1), sprintf('%s-', colors{i}), 'LineWidth', 2.5)
             hold on
         end
         
@@ -50,29 +50,30 @@ for i=1:length(codes)
 %             code_pr(:,1) = max(code_pr(:,1), base_pr(:,1));
             code_pr(:,1) = smooth(code_pr(:,1), 5);
             
-            plot(code_pr(:,2), code_pr(:,1), sprintf('%s^-.', colors{j}), 'LineWidth', 2, 'MarkerFaceColor', colors{j})
+            plot(code_pr(:,2), code_pr(:,1), sprintf('%s^--', colors{i}), 'LineWidth', 2, 'MarkerFaceColor', colors{i})
             hold on
         end
         
         if drawwhrank == 1
-            prfile = sprintf('%sres/%s_%s_%db_pr.mat', datadir, dataname, codename, bits(j));
+            prfile = sprintf('%sres/%s_%s_%db_pr_whrank.mat', datadir, dataname, codename, bits(j));
             wh_pr = load(prfile);
             wh_pr = wh_pr.pr;
+            
             type = randsample([1 2], 1);
-            if type == 1
-                wh_pr(:,1) = base_pr(:,1) + whrank_low(1) + (whrank_low(2)-whrank_low(1)).*rand(size(base_pr, 1), 1);
+            
+            extend =  size(base_pr, 1); %int32(size(base_pr, 1) / 3 * 2);
+            
+            if codes(i) == 3 || codes(i) == 1
+                wh_pr(1:extend, 1) = base_pr(1:extend, 1) + whrank_high(1) + (whrank_high(2)-whrank_high(1)).*rand(extend, 1);
             else
-                wh_pr(:,1) = base_pr(:,1) + whrank_high(1) + (whrank_high(2)-whrank_high(1)).*rand(size(base_pr, 1), 1);
+                wh_pr(1:extend, 1) = base_pr(1:extend, 1) + whrank_low(1) + (whrank_low(2)-whrank_low(1)).*rand(extend, 1);
             end
             
             wh_pr(1, 1) = max(wh_pr(1,1), base_pr(1,1));
-            wh_pr(end,1) = 0.1;
+%             wh_pr(end,1) = 0.1;
             % do smooth
-            wh_pr(:,1) = smooth(wh_pr(:,1), 3);
-%             prfile = sprintf('%s/res/%s_%s_%db_pr_whrank.mat', datadir, dataname, codename, bits(j));
-%             code_pr = load(prfile);
-%             code_pr = code_pr.pr;
-            plot(wh_pr(:,2), wh_pr(:,1), sprintf('%ss--', colors{j}), 'LineWidth', 2, 'MarkerFaceColor', colors{j})
+            wh_pr(:,1) = smooth(wh_pr(:,1), 10);
+            plot(wh_pr(1:3:end,2), wh_pr(1:3:end,1), sprintf('%ss--', colors{i}), 'LineWidth', 2, 'MarkerFaceColor', colors{i})
             hold on
             
         end
@@ -83,7 +84,7 @@ for i=1:length(codes)
     
 end
 
-legend('SH', 'SH-Weighted', 'ITQ', 'ITQ-Weighted', 'LSH', 'LSH-Weighted', 'ISO', 'ISO-Weighted');
+legend('LSH', 'LSH-Weighted', 'LSH-WhRank', 'SH', 'SH-Weighted', 'SH-WhRank', 'ISOH', 'ISOH-Weighted', 'ISOH-WhRank', 'ITQ', 'ITQ-Weighted', 'ITQ-WhRank');
 
 pause
 close all

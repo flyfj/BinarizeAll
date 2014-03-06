@@ -8,8 +8,8 @@ datanames = {'dummay', 'cifar', 'mnist'};
 use_data = 2;
 dataname = datanames{use_data};
 
-% datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
-datadir = '';
+datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
+% datadir = '';
 
 % load raw features
 [traindata, trainlabels, testdata, testlabels] = loadTrainingData(use_data);
@@ -34,7 +34,7 @@ codetypes{6,1} = 'ksh'; codetypes{6,2} = '../KSH';
 codes = [1 2 3 5];
 bits = [16 32 64 96 128];
 
-binarize = 1;
+binarize = 0;
 
 for id=1:length(codes)
     

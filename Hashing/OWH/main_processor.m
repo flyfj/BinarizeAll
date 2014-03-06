@@ -21,8 +21,8 @@ addpath(genpath('../unsupervised_hash_code/'));
 % nbits = 32;
 % method = 1;
 
-% datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
-datadir = '';
+datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
+% datadir = '';
 
 disp(['Dataset: ' dataname '; Code: ' codename '; bits: ' num2str(nbits)]);
 
@@ -78,7 +78,7 @@ for i=1:length(labels)
     clsids = find(trainlabels == labels(i));
     traingroups{i,1} = clsids;
     clsids = find(testlabels == labels(i));
-    testgroups{i,1} = clsids(1:int32(length(clsids)/3));
+    testgroups{i,1} = clsids;%clsids(1:int32(length(clsids)/3));
     newtestlabels = [newtestlabels; testlabels(testgroups{i,1})];
     newtestcodes = [newtestcodes; testcodes(testgroups{i},:)];
     
@@ -330,13 +330,13 @@ for i=1:length(testgroups)
 %     if ~(i==9 || i==7)
 %         continue;
 %     end
-    if length(testgroups{i}) <= testlimit
-        continue;
-    end
+%     if length(testgroups{i}) <= testlimit
+%         continue;
+%     end
     
     % process current code
 %     testlabel = i;
-    testsampids = randsample( testgroups{i}, 10 );
+    testsampids = randsample( testgroups{i}, 50 );
     testsamps = [testsamps; testcodes(testsampids, :)];
     testsampslabels = [testsampslabels; testlabels(testsampids)];
     
@@ -368,14 +368,16 @@ if method == 1
 end
 
 if method == 2
-    testsamp_un = testcodes_un(testsampids, :);
-    whrank_dists = whrankHam(testsamp_un, testsamp, testcodes, fstd);
-    [whrank_sorted_dist, whrank_sorted_idx] = sort(whrank_dists, 2);
+    whw = 1 ./ fstd;
+    %testsamp_un = testcodes_un(testsampids, :);
+    whrank_dists = weightedHam(testsamps, testcodes, whw, 0);
+    [~, whrank_sorted_idx] = sort(whrank_dists, 2);
+    ranked_labels = testlabels(whrank_sorted_idx);
 end
 
 ntest = size(testsamps, 1);
 
-interval = 100;
+interval = 10;
 pt_num = 1 + floor(size(testcodes,1)/interval);
 prr = zeros(1, pt_num*2);
 for pi = 1:ntest

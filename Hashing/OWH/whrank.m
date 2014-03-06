@@ -6,10 +6,10 @@
 
 
 % load unbinarized hash values
-dataname = 'mnist';
+dataname = 'cifar';
 datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
-bits = [16, 32, 48, 96, 128];
+bits = [16, 32, 64, 96, 128];
 
 codes = [1, 2, 3, 5];
 
