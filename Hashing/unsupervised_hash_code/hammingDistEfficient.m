@@ -11,6 +11,9 @@ mmodes=SHparam.modes;
 W2=1;
 for dd=1:ndim
     I=find(mmodes(:,dd)>0);
+    if(~isempty(I))
+        a = 2;
+    end
     dim1Mat=B1(:,I)*diag(weights(I))*B2(:,I)';
     W2=W2.*(1+dim1Mat);
 end

@@ -13,7 +13,7 @@ drawBase = 1;
 drawWeighted = 1;
 drawwhrank = 1;
 drawWeightedOnline = 0;
-savemap = 0;
+savemap = 1;
 
 whrank_high = [0.07 0.1];
 whrank_low = [0.02 0.03];
@@ -38,9 +38,9 @@ for j=1:length(bits)
 %         set(f, 'position', p);
 %         clear p
 %     end
-    title(f, [num2str(bits(j)) 'bits'], 'fontSize', 15)
-    xlabel('Recall', 'FontSize', 13)
-    ylabel('Precision', 'FontSize', 13)
+    title(f, [num2str(bits(j)) 'bits'], 'fontSize', 20)
+    xlabel('Recall', 'FontSize', 20)
+    ylabel('Precision', 'FontSize',20)
     hold on
     axis([0,1,0,1]);
     hold on

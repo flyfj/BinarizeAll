@@ -89,7 +89,7 @@ if strcmp(type, 'triplet')
         % minst: 2, 
         for i=1:triplet_num
             % select a sample; now, force to learn for class 1
-            samp_cls_id = int32( randsample([7 9], 1) );
+            samp_cls_id = int32( randsample(validcls, 1) );
             samp_obj_id = int32( randsample(cls_samp_ids{samp_cls_id}, 1) ); %randsample(801:851, 1);  
             
             % select similar sample from same class

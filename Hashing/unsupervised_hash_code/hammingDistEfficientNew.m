@@ -7,7 +7,7 @@ for tt=1:length(threshs)
     paramI=SHparam;
     I=find(SHparam.thresholds==threshs(tt));
     paramI.lambdas=SHparam.lambdas(I);
-    paramI.nbits=length(I); 
+    paramI.nbits=length(I);
     paramI.modes=SHparam.modes(I,:);
     B1I=B1(:,I);
     B2I=B2(:,I);

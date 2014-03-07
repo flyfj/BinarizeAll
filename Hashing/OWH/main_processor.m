@@ -32,7 +32,7 @@ code_params.nbits = nbits;
 codefile = sprintf('%sdata/%s_codes/%s_%s_%db.mat', datadir, dataname, dataname, codename, nbits);
 uncodefile = sprintf('%sdata/%s_codes/%s_%s_%db_un.mat', datadir, dataname, dataname, codename, nbits);
 basecurvefile = sprintf('%sres/%s_%s_%db_pr.mat', datadir, dataname, codename, nbits);
-learncurvefile = sprintf('%sres/%s_%s_%db_pr_weighted.mat', datadir, dataname, codename, nbits);
+learncurvefile = sprintf('%sres/%s_%s_%db_pr_weighted_online.mat', datadir, dataname, codename, nbits);
 whrankcurvefile = sprintf('%sres/%s_%s_%db_pr_whrank.mat', datadir, dataname, codename, nbits);
 
 if method == 2
@@ -199,18 +199,18 @@ if method == 1
 %         W = ranksvm(code_dist_vecs, O, C_O', w_0', svm_opt); 
 
         % online mode
-%         W = w_0';
-%         step = 1000;
-%         for id=1:step:size(O,1)-step
-%             tic
-%             curO = O(id:id+step,:);
-%             curS = S(id:id+step,:);
-%             W = ranksvm_with_sim(code_dist_vecs, curO, curS, C_O(1,id:id+step)', C_S(1,id:id+step)', W, svm_opt);
-%             toc
-%             %disp(['Iter: ' num2str(id)]);
-%         end
+        W = w_0';
+        step = 1000;
+        for id=1:step:size(O,1)-step
+            tic
+            curO = O(id:id+step,:);
+            curS = S(id:id+step,:);
+            W = ranksvm_with_sim(code_dist_vecs, curO, curS, C_O(1,id:id+step)', C_S(1,id:id+step)', W, svm_opt);
+            toc
+            %disp(['Iter: ' num2str(id)]);
+        end
 
-        W = ranksvm_with_sim(code_dist_vecs, O, S, C_O', C_S', w_0', svm_opt);
+%         W = ranksvm_with_sim(code_dist_vecs, O, S, C_O', C_S', w_0', svm_opt);
         %W = weightLearnerRank(w_0', code_dist_vecs, ordered_idx);
 
     end
@@ -329,9 +329,9 @@ for i=1:length(testgroups)
 %     if ~(i==9 || i==7)
 %         continue;
 %     end
-%     if length(testgroups{i}) <= testlimit
-%         continue;
-%     end
+    if length(testgroups{i}) <= testlimit
+        continue;
+    end
     
     % process current code
 %     testlabel = i;
