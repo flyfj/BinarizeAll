@@ -37,12 +37,12 @@ whrankcurvefile = sprintf('%sres/%s_%s_%db_pr_whrank.mat', datadir, dataname, co
 
 if method == 2
     % load whrank parameters and data
-    whrankfile = sprintf('%sdata/whrank/%s_%s_%db_whrank.mat', datadir, dataname, codename, nbits);
+    whrankfile = sprintf('%sdata/whrank/%s_%s_%db_whrank.mat', datadir, 'mnist', codename, nbits);
     load(whrankfile);
     
-    load(uncodefile);
-    traincodes_un = traincodes;
-    testcodes_un = testcodes;
+%     load(uncodefile);
+%     traincodes_un = traincodes;
+%     testcodes_un = testcodes;
 end
     
 if strcmp(dataname, 'face') == 1
@@ -78,9 +78,10 @@ for i=1:length(labels)
     clsids = find(trainlabels == labels(i));
     traingroups{i,1} = clsids;
     clsids = find(testlabels == labels(i));
-    testgroups{i,1} = clsids;%clsids(1:int32(length(clsids)/3));
+    testgroups{i,1} = clsids;
+    partids = clsids(1:int32(length(clsids)/3));
     newtestlabels = [newtestlabels; testlabels(clsids(1:int32(length(clsids)/3)))];
-    newtestcodes = [newtestcodes; testcodes(testgroups{i},:)];
+    newtestcodes = [newtestcodes; testcodes(partids,:)];
     
     if(length(clsids) > 500)
         big500 = big500 + 1;
@@ -123,7 +124,7 @@ if method == 1
     disp('Generating training pairs...');
 
     if ~exist('sim_data', 'var')
-        sim_data = genSimData(traingroups, 'triplet', 5000, validcls);
+        sim_data = genSimData(traingroups, 'triplet', 6000, validcls);
 %         sim_data2 = genSimData(testgroups, 'triplet', 2000);
 %         sim_data = [sim_data; sim_data2];
     end
@@ -335,7 +336,7 @@ for i=1:length(testgroups)
     
     % process current code
 %     testlabel = i;
-    testsampids = testgroups{i};%randsample( testgroups{i}, 50 );
+    testsampids = randsample( testgroups{i}, 10 );
     testsamps = [testsamps; testcodes(testsampids, :)];
     testsampslabels = [testsampslabels; testlabels(testsampids)];
     

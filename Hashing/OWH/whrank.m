@@ -6,7 +6,7 @@
 
 
 % load unbinarized hash values
-dataname = 'cifar';
+dataname = 'face';
 datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 bits = [16, 32, 64, 96, 128];
