@@ -6,14 +6,14 @@ datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
-codes = [3 1 5 2];
+codes = [1];
 bits = [16 32 64 96 128];
 
 drawBase = 1;
 drawWeighted = 1;
 drawwhrank = 1;
 drawWeightedOnline = 0;
-savemap = 1;
+savemap = 0;
 
 whrank_high = [0.07 0.1];
 whrank_low = [0.02 0.03];
@@ -139,8 +139,8 @@ end
 set(fig, 'pos', [0 0 800 700])
 
 % legend('LSH-Weighted-Online', 'LSH-Weighted', 'SH-Weighted-Online', 'SH-Weighted', 'ISOH-Weighted-Online', 'ISOH-Weighted', 'ITQ-Weighted-Online', 'ITQ-Weighted');
-legend('LSH-Weighted', 'LSH-Weighted-Online', 'SH-Weighted', 'SH-Weighted-Online', 'ISOH-Weighted', 'ISOH-Weighted-Online', 'ITQ-Weighted', 'ITQ-Weighted-Online');
-% legend('LSH', 'LSH-WhRank', 'LSH-Weighted', 'SH', 'SH-WhRank', 'SH-Weighted', 'ISOH', 'ISOH-WhRank', 'ISOH-Weighted', 'ITQ',  'ITQ-WhRank', 'ITQ-Weighted');
+% legend('LSH-Weighted', 'LSH-Weighted-Online', 'SH-Weighted', 'SH-Weighted-Online', 'ISOH-Weighted', 'ISOH-Weighted-Online', 'ITQ-Weighted', 'ITQ-Weighted-Online');
+legend('LSH', 'LSH-WhRank', 'LSH-Weighted', 'SH', 'SH-WhRank', 'SH-Weighted', 'ISOH', 'ISOH-WhRank', 'ISOH-Weighted', 'ITQ',  'ITQ-WhRank', 'ITQ-Weighted');
 
 if savemap == 1
     save(mapfile, 'basemap', 'weightedmap', 'whmap');
