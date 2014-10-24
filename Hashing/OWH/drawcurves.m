@@ -1,19 +1,19 @@
 
 %% draw result curves
 
-dataname = 'face';
+dataname = 'mnist';
 datadir = 'C:\Users\jiefeng\Dropbox\hash_data\';
 
 codenames = {'sh', 'itq', 'lsh', 'mdsh', 'iso'};
 
 codes = [3 1 5 2];
-bits = [16 32 64 96 128];
+bits = [32];
 
-drawBase = 1;
+drawBase = 0;
 drawWeighted = 1;
-drawwhrank = 1;
-drawWeightedOnline = 0;
-savemap = 1;
+drawwhrank = 0;
+drawWeightedOnline = 1;
+savemap = 0;
 
 whrank_high = [0.07 0.1];
 whrank_low = [0.02 0.03];
@@ -76,7 +76,7 @@ for j=1:length(bits)
             code_pr(:,1) = smooth(code_pr(:,1), 5);
             weightedmap(i, j) = mAP(code_pr(:,1), code_pr(:, 2));
 
-            plot(code_pr(idx,2), code_pr(idx,1), sprintf('%ss--', colors{i}), 'LineWidth', 2, 'MarkerFaceColor', colors{i},  'MarkerSize', 5)
+            plot(code_pr(idx,2), code_pr(idx,1), sprintf('%s^--', colors{i}), 'LineWidth', 2, 'MarkerFaceColor', colors{i},  'MarkerSize', 6)
             hold on
          end
          
